@@ -16,8 +16,7 @@ export const SUSTENTA_SUPABASE_ANON_KEY =
 export const sustentaConfigurado = SUSTENTA_SUPABASE_ANON_KEY.length > 0;
 
 export const sustenta = createClient(SUSTENTA_SUPABASE_URL, SUSTENTA_SUPABASE_ANON_KEY || "sin-clave", {
-  db: { schema: "horas" },
-  auth: { persistSession: false, autoRefreshToken: false },
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: "sustenta.auth" },
 });
 
 /** Cliente sobre el esquema público de Storage/otros helpers. */

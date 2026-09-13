@@ -44,7 +44,7 @@ function Asignaciones() {
     queryKey: ["proyectos"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("proyecto").select("*");
+      const { data, error } = await sustenta.from("hr_proyecto").select("*");
       if (error) throw error;
       return (data ?? []) as Proyecto[];
     },
@@ -57,12 +57,19 @@ function Asignaciones() {
     queryKey: ["asignaciones-proyecto", proyectoActual?.id],
     enabled: sustentaConfigurado && !!proyectoActual,
     queryFn: async () => {
+      // Las vistas hr_ no exponen claves foráneas a PostgREST: el cruce se arma aquí.
       const { data, error } = await sustenta
-        .from("asignacion")
-        .select("*, colaborador:colaborador_id(*)")
+        .from("hr_asignacion")
+        .select("*")
         .eq("proyecto_id", proyectoActual!.id);
       if (error) throw error;
-      return (data ?? []) as Asignacion[];
+      const filas = (data ?? []) as Asignacion[];
+      const ids = [...new Set(filas.map((a) => a.colaborador_id).filter(Boolean))] as string[];
+      if (ids.length === 0) return filas;
+      const { data: cols, error: errC } = await sustenta.from("hr_colaborador").select("*").in("id", ids);
+      if (errC) throw errC;
+      const mapa = new Map((cols ?? []).map((c: { id: string }) => [c.id, c]));
+      return filas.map((a) => ({ ...a, colaborador: mapa.get(a.colaborador_id as string) })) as Asignacion[];
     },
   });
 
@@ -71,8 +78,8 @@ function Asignaciones() {
     enabled: sustentaConfigurado && !!proyectoActual,
     queryFn: async () => {
       const { data, error } = await sustenta
-        .from("registro_hora")
-        .select("colaborador_id, horas, asignacion_id")
+        .from("hr_registro_hora")
+        .select("colaborador_id, horas")
         .eq("proyecto_id", proyectoActual!.id);
       if (error) throw error;
       return (data ?? []) as Partial<RegistroHora>[];
@@ -82,7 +89,7 @@ function Asignaciones() {
   const horasPorAsignacion = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const r of horasQ.data ?? []) {
-      const k = r.asignacion_id ?? r.colaborador_id ?? "";
+      const k = r.colaborador_id ?? "";
       mapa.set(k, (mapa.get(k) ?? 0) + Number(r.horas ?? 0));
     }
     return mapa;
@@ -92,7 +99,7 @@ function Asignaciones() {
 
   const eliminar = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await sustenta.from("asignacion").delete().eq("id", id);
+      const { error } = await sustenta.from("hr_asignacion").delete().eq("id", id);
       if (error) throw error;
       return id;
     },
@@ -110,7 +117,7 @@ function Asignaciones() {
 
   const actualizar = useMutation({
     mutationFn: async ({ id, fecha_fin }: { id: string; fecha_fin: string | null }) => {
-      const { error } = await sustenta.from("asignacion").update({ fecha_fin }).eq("id", id);
+      const { error } = await sustenta.from("hr_asignacion").update({ fecha_fin }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -1,79 +1,101 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Session } from "@supabase/supabase-js";
 import { sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
 import type { Colaborador, Periodo, Rol } from "@/integrations/sustenta/types";
 
-const CLAVE = "sustenta.colaborador";
-
 interface SesionCtx {
-  colaboradores: Colaborador[];
+  session: Session | null;
+  autenticando: boolean;
   colaborador: Colaborador | null;
   rol: Rol;
-  setColaboradorId: (id: string) => void;
   periodoActivo: Periodo | null;
   periodos: Periodo[];
   cargando: boolean;
   configurado: boolean;
+  cerrarSesion: () => Promise<void>;
 }
 
 const Ctx = createContext<SesionCtx | null>(null);
 
 export function SesionProvider({ children }: { children: ReactNode }) {
-  const [colaboradorId, setId] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [autenticando, setAutenticando] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    setId(localStorage.getItem(CLAVE));
+    let activo = true;
+    const { data: sub } = sustenta.auth.onAuthStateChange((_evento, s) => {
+      setSession(s);
+      setAutenticando(false);
+    });
+    sustenta.auth.getSession().then(({ data }) => {
+      if (!activo) return;
+      setSession(data.session);
+      setAutenticando(false);
+    });
+    return () => {
+      activo = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
-  const colaboradoresQ = useQuery({
-    queryKey: ["colaboradores"],
-    enabled: sustentaConfigurado,
+  const userId = session?.user?.id ?? null;
+
+  // El colaborador activo sale de la propia sesión: RLS decide qué filas se ven.
+  const colaboradorQ = useQuery({
+    queryKey: ["colaborador-activo", userId],
+    enabled: sustentaConfigurado && !!userId,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("colaborador").select("*").limit(300);
+      const { data, error } = await sustenta
+        .from("hr_colaborador")
+        .select("*")
+        .eq("auth_user_id", userId)
+        .maybeSingle();
       if (error) throw error;
-      return (data ?? []) as Colaborador[];
+      return (data ?? null) as Colaborador | null;
     },
   });
 
   const periodosQ = useQuery({
-    queryKey: ["periodos"],
-    enabled: sustentaConfigurado,
+    queryKey: ["periodos", userId],
+    enabled: sustentaConfigurado && !!userId,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("periodo").select("*").limit(60);
+      const { data, error } = await sustenta.from("hr_periodo").select("*").limit(60);
       if (error) throw error;
       return (data ?? []) as Periodo[];
     },
   });
 
-  const colaboradores = useMemo(() => colaboradoresQ.data ?? [], [colaboradoresQ.data]);
   const periodos = useMemo(() => {
     const lista = [...(periodosQ.data ?? [])];
-    lista.sort((a, b) => String(b.fecha_inicio ?? b.codigo ?? "").localeCompare(String(a.fecha_inicio ?? a.codigo ?? "")));
+    lista.sort((a, b) =>
+      String(b.fecha_inicio ?? b.codigo ?? "").localeCompare(String(a.fecha_inicio ?? a.codigo ?? "")),
+    );
     return lista;
   }, [periodosQ.data]);
-
-  const colaborador = useMemo(
-    () => colaboradores.find((c) => c.id === colaboradorId) ?? colaboradores[0] ?? null,
-    [colaboradores, colaboradorId],
-  );
 
   const periodoActivo = useMemo(
     () => periodos.find((p) => (p.estado ?? "").toLowerCase() === "abierto") ?? periodos[0] ?? null,
     [periodos],
   );
 
+  const colaborador = colaboradorQ.data ?? null;
+
   const valor: SesionCtx = {
-    colaboradores,
+    session,
+    autenticando,
     colaborador,
     rol: (colaborador?.rol as Rol) ?? "colaborador",
-    setColaboradorId: (id) => {
-      localStorage.setItem(CLAVE, id);
-      setId(id);
-    },
     periodoActivo,
     periodos,
-    cargando: colaboradoresQ.isLoading || periodosQ.isLoading,
+    cargando: colaboradorQ.isLoading || periodosQ.isLoading,
     configurado: sustentaConfigurado,
+    cerrarSesion: async () => {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      await sustenta.auth.signOut();
+    },
   };
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;

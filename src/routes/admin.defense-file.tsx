@@ -86,7 +86,7 @@ function DefenseFilePantalla() {
     queryKey: ["empresas"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("empresa_vinculada").select("*");
+      const { data, error } = await sustenta.from("hr_empresa_vinculada").select("*");
       if (error) throw error;
       return (data ?? []) as EmpresaVinculada[];
     },
@@ -99,7 +99,7 @@ function DefenseFilePantalla() {
 
   const generar = useMutation({
     mutationFn: async () => {
-      const { data, error } = await sustenta.rpc("generar_defense_file", {
+      const { data, error } = await sustenta.rpc("hr_generar_defense_file", {
         p_empresa: empresaId,
         p_periodo: periodoId,
       });
@@ -120,7 +120,7 @@ function DefenseFilePantalla() {
 
   const confirmar = useMutation({
     mutationFn: async () => {
-      const { data, error } = await sustenta.rpc("confirmar_defense_file", {
+      const { data, error } = await sustenta.rpc("hr_confirmar_defense_file", {
         p_id: expediente?.id,
         p_usuario: colaborador?.id,
       });
