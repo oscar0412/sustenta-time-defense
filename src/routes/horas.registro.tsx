@@ -30,6 +30,7 @@ import type {
   RegistroHora,
 } from "@/integrations/sustenta/types";
 import { nombreEmpresa } from "@/integrations/sustenta/types";
+import type { AsignacionDetalle } from "@/integrations/sustenta/vistas";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/horas/registro")({
@@ -83,19 +84,28 @@ function RegistroHoras() {
     queryKey: ["asignaciones", colaboradorId],
     enabled: habilitado,
     queryFn: async () => {
-      // Las vistas hr_ no exponen claves foráneas a PostgREST: el cruce se arma aquí.
+      // La vista enriquecida ya trae proyecto y empresa resueltos.
       const { data, error } = await sustenta
-        .from("hr_asignacion")
+        .from("hr_v_asignacion_detalle")
         .select("*")
         .eq("colaborador_id", colaboradorId);
       if (error) throw error;
-      const filas = (data ?? []) as Asignacion[];
-      const ids = [...new Set(filas.map((a) => a.proyecto_id).filter(Boolean))] as string[];
-      if (ids.length === 0) return filas;
-      const { data: proys, error: errP } = await sustenta.from("hr_proyecto").select("*").in("id", ids);
-      if (errP) throw errP;
-      const mapa = new Map((proys ?? []).map((p: { id: string }) => [p.id, p]));
-      return filas.map((a) => ({ ...a, proyecto: mapa.get(a.proyecto_id as string) })) as Asignacion[];
+      return ((data ?? []) as AsignacionDetalle[]).map((d) => ({
+        id: d.id,
+        proyecto_id: d.proyecto_id,
+        colaborador_id: d.colaborador_id,
+        rol_proyecto: d.rol_proyecto,
+        dedicacion_pct: d.dedicacion_pct,
+        fecha_inicio: d.fecha_inicio,
+        fecha_fin: d.fecha_fin,
+        cobrable: d.cobrable,
+        proyecto: {
+          id: d.proyecto_id,
+          codigo: d.proyecto_codigo,
+          nombre: d.proyecto_nombre,
+          empresa_id: d.empresa_id,
+        },
+      })) as Asignacion[];
     },
   });
 
