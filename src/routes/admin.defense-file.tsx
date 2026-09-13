@@ -151,7 +151,14 @@ function DefenseFilePantalla() {
         p_usuario: colaborador?.id,
       });
       if (error) throw error;
-      return (Array.isArray(data) ? data[0] : data) as DefenseFile;
+      const sellado = (Array.isArray(data) ? data[0] : data) as DefenseFile;
+      const { data: completo, error: errorLectura } = await sustenta
+        .from("hr_defense_file")
+        .select("*")
+        .eq("id", sellado.id)
+        .single();
+      if (errorLectura) throw errorLectura;
+      return (completo ?? sellado) as DefenseFile;
     },
     onSuccess: (df) => {
       setErrorBD(null);
