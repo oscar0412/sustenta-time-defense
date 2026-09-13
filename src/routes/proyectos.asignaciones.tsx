@@ -6,10 +6,12 @@ import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Aviso, Badge, Button, Card, CardHeader, Etiqueta, Num, Progress, Vacio } from "@/components/ui-kit";
+import { SelectorPeriodo, usePeriodoSeleccionado } from "@/components/PeriodoSelector";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
 import type { Asignacion, Proyecto } from "@/integrations/sustenta/types";
-import type { AsignacionDetalle } from "@/integrations/sustenta/vistas";
+import type { AsignacionPeriodo } from "@/integrations/sustenta/vistas";
 import { nombreColaborador } from "@/integrations/sustenta/types";
+import { horasMinutos } from "@/lib/formato";
 
 export const Route = createFileRoute("/proyectos/asignaciones")({
   head: () => ({
@@ -36,6 +38,7 @@ function dedicacionPct(a: Asignacion): number {
 
 function Asignaciones() {
   const qc = useQueryClient();
+  const { periodoId, setPeriodoId, periodos } = usePeriodoSeleccionado();
   const [proyectoId, setProyectoId] = useState("");
   const [editando, setEditando] = useState<Asignacion | null>(null);
   const [fechaFin, setFechaFin] = useState("");
@@ -55,25 +58,21 @@ function Asignaciones() {
   const proyectoActual = proyectos.find((p) => p.id === proyectoId) ?? proyectos[0] ?? null;
 
   const asignacionesQ = useQuery({
-    queryKey: ["asignaciones-proyecto", proyectoActual?.id],
-    enabled: sustentaConfigurado && !!proyectoActual,
+    queryKey: ["asignaciones-proyecto-periodo", proyectoActual?.id, periodoId],
+    enabled: sustentaConfigurado && !!proyectoActual && !!periodoId,
     queryFn: async () => {
-      // La vista enriquecida trae colaborador, empresa y horas ya registradas.
+      // La vista mensual trae la expectativa y ejecución acotadas al periodo.
       const { data, error } = await sustenta
-        .from("hr_v_asignacion_detalle")
+        .from("hr_v_asignacion_periodo")
         .select("*")
-        .eq("proyecto_id", proyectoActual!.id);
+        .eq("proyecto_id", proyectoActual!.id)
+        .eq("periodo_id", periodoId);
       if (error) throw error;
-      return (data ?? []) as AsignacionDetalle[];
+      return (data ?? []) as AsignacionPeriodo[];
     },
   });
 
   const detalle = useMemo(() => asignacionesQ.data ?? [], [asignacionesQ.data]);
-
-  const horasPorAsignacion = useMemo(
-    () => new Map(detalle.map((a) => [a.id, Number(a.horas_registradas ?? 0)])),
-    [detalle],
-  );
 
   const asignaciones = useMemo(
     () =>
@@ -135,6 +134,10 @@ function Asignaciones() {
         ]}
       />
 
+      <div className="mb-4">
+        <SelectorPeriodo periodos={periodos} valor={periodoId} onChange={setPeriodoId} />
+      </div>
+
       <Card>
         <CardHeader
           titulo="Asignaciones del proyecto"
@@ -172,9 +175,10 @@ function Asignaciones() {
             <tbody>
               {asignaciones.map((a) => {
                 const ded = dedicacionPct(a);
-                const usadas = horasPorAsignacion.get(a.id) ?? horasPorAsignacion.get(a.colaborador_id) ?? 0;
-                const capacidad = Math.max(1, (ded / 100) * 160);
-                const pct = Math.round((usadas / capacidad) * 100);
+                const filaPeriodo = detalle.find((d) => d.id === a.id);
+                const usadas = Number(filaPeriodo?.horas_registradas ?? 0);
+                const capacidad = Number(filaPeriodo?.horas_esperadas ?? 0);
+                const avance = capacidad > 0 ? Math.round((usadas / capacidad) * 100) : 0;
                 const cobra = a.cobrabilidad ?? (a.cobrable == null ? null : a.cobrable ? "Cobrable" : "No cobrable");
                 return (
                   <tr key={a.id} className="border-b border-border last:border-0 align-middle">
@@ -194,10 +198,10 @@ function Asignaciones() {
                     <td className="px-4 py-3">
                       <div className="w-36">
                         <div className="mb-1 flex justify-between">
-                          <Num className="text-[12px]">{usadas.toFixed(1)} h</Num>
-                          <Num className="text-[12px] text-muted-foreground">{pct}%</Num>
+                          <Num className="text-[12px]">{horasMinutos(usadas)} / {horasMinutos(capacidad)}</Num>
+                          <Num className="text-[12px] text-muted-foreground">{avance}%</Num>
                         </div>
-                        <Progress valor={pct} />
+                        <Progress valor={avance} />
                       </div>
                     </td>
                     <td className="px-4 py-3">

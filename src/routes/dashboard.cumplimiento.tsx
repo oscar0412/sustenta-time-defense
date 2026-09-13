@@ -8,7 +8,7 @@ import { Aviso, Badge, Card, CardHeader, Num, Vacio } from "@/components/ui-kit"
 import { BarraH, KPI, KPIGrid } from "@/components/metrics";
 import { SelectorPeriodo, usePeriodoSeleccionado } from "@/components/PeriodoSelector";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
-import type { CumplimientoFila, LiquidacionFila } from "@/integrations/sustenta/vistas";
+import type { CapacidadFila, CumplimientoFila, LiquidacionFila } from "@/integrations/sustenta/vistas";
 import { COLORES, etiquetaPeriodo, n, pct, soles } from "@/lib/formato";
 
 export const Route = createFileRoute("/dashboard/cumplimiento")({
@@ -55,6 +55,19 @@ function Cumplimiento() {
     },
   });
 
+  const costosQ = useQuery({
+    queryKey: ["costos-cumplimiento", periodoId],
+    enabled: sustentaConfigurado && !!periodoId,
+    queryFn: async () => {
+      const { data, error } = await sustenta
+        .from("hr_v_capacidad")
+        .select("costo_cargado")
+        .eq("periodo_id", periodoId);
+      if (error) throw error;
+      return (data ?? []) as Pick<CapacidadFila, "costo_cargado">[];
+    },
+  });
+
   const todas = todoQ.data ?? [];
   const filas = useMemo(
     () => todas.filter((f) => f.periodo_id === periodoId).sort((a, b) => Number(b.horas ?? 0) - Number(a.horas ?? 0)),
@@ -67,7 +80,11 @@ function Cumplimiento() {
       ? filas.reduce((a, f) => a + (Number(f.pct_con_evidencia ?? 0) * Number(f.horas ?? 0)) / 100, 0) / horas * 100
       : 0;
   const sellados = filas.filter((f) => Number(f.expedientes_sellados ?? 0) > 0).length;
-  const importe = (liquidacionQ.data ?? []).reduce((a, f) => a + Number(f.total_facturar ?? 0), 0);
+  const costosCargados = (costosQ.data?.length ?? 0) > 0 && (costosQ.data ?? []).every((f) => f.costo_cargado);
+  const liquidacionCalculada = costosCargados && (liquidacionQ.data ?? []).some((f) => f.total_facturar != null);
+  const importe = liquidacionCalculada
+    ? (liquidacionQ.data ?? []).reduce((a, f) => a + Number(f.total_facturar ?? 0), 0)
+    : null;
   const maxHoras = Math.max(1, ...filas.map((f) => Number(f.horas ?? 0)));
 
   const serie = useMemo(() => {
@@ -118,7 +135,7 @@ function Cumplimiento() {
               valor={pct(evidenciaGlobal)}
               tono={evidenciaGlobal > 95 ? "exito" : evidenciaGlobal >= 90 ? "advertencia" : "alerta"}
             />
-            <KPI etiqueta="Importe a facturar" valor={soles(importe)} />
+            <KPI etiqueta="Importe a facturar" valor={liquidacionCalculada ? soles(importe) : "Sin calcular"} nota={liquidacionCalculada ? undefined : "Liquidación no calculada"} />
             <KPI
               etiqueta="Expedientes confirmados"
               valor={`${n(sellados, 0)} / ${n(filas.length, 0)}`}

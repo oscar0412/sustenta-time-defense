@@ -112,7 +112,7 @@ function Liquidacion() {
         <Card><Vacio mensaje="Cargando liquidación…" /></Card>
       ) : empresas.length === 0 ? (
         <Card>
-          <Vacio mensaje={`No hay liquidación registrada para ${etiquetaPeriodo(periodo?.anio, periodo?.mes)}.`} />
+          <Vacio mensaje={`La liquidación de ${etiquetaPeriodo(periodo?.anio, periodo?.mes)} no está calculada. Los costos pendientes no se muestran como importes en cero.`} />
         </Card>
       ) : (
         <>
