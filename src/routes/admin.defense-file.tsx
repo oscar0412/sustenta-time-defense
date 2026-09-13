@@ -116,6 +116,27 @@ function DefenseFilePantalla() {
   });
   const sinLiquidacion = liquidacionQ.data === 0;
 
+  const expedienteQ = useQuery({
+    queryKey: ["defense-file", empresaId, periodoSeleccionadoId],
+    enabled: sustentaConfigurado && !!empresaId && !!periodoSeleccionadoId,
+    queryFn: async () => {
+      const { data, error } = await sustenta
+        .from("hr_defense_file")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .eq("periodo_id", periodoSeleccionadoId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as DefenseFile | null;
+    },
+  });
+
+  useEffect(() => {
+    setExpediente(expedienteQ.data ?? null);
+  }, [expedienteQ.data]);
+
   const generar = useMutation({
     mutationFn: async () => {
       const { data, error } = await sustenta.rpc("hr_generar_defense_file", {
