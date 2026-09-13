@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Aviso, Badge, Button, Card, CardHeader, Etiqueta, Num, Progress, Vacio } from "@/components/ui-kit";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
-import type { Asignacion, Proyecto, RegistroHora } from "@/integrations/sustenta/types";
+import type { Asignacion, Proyecto } from "@/integrations/sustenta/types";
+import type { AsignacionDetalle } from "@/integrations/sustenta/vistas";
 import { nombreColaborador } from "@/integrations/sustenta/types";
 
 export const Route = createFileRoute("/proyectos/asignaciones")({
@@ -57,45 +58,39 @@ function Asignaciones() {
     queryKey: ["asignaciones-proyecto", proyectoActual?.id],
     enabled: sustentaConfigurado && !!proyectoActual,
     queryFn: async () => {
-      // Las vistas hr_ no exponen claves foráneas a PostgREST: el cruce se arma aquí.
+      // La vista enriquecida trae colaborador, empresa y horas ya registradas.
       const { data, error } = await sustenta
-        .from("hr_asignacion")
+        .from("hr_v_asignacion_detalle")
         .select("*")
         .eq("proyecto_id", proyectoActual!.id);
       if (error) throw error;
-      const filas = (data ?? []) as Asignacion[];
-      const ids = [...new Set(filas.map((a) => a.colaborador_id).filter(Boolean))] as string[];
-      if (ids.length === 0) return filas;
-      const { data: cols, error: errC } = await sustenta.from("hr_colaborador").select("*").in("id", ids);
-      if (errC) throw errC;
-      const mapa = new Map((cols ?? []).map((c: { id: string }) => [c.id, c]));
-      return filas.map((a) => ({ ...a, colaborador: mapa.get(a.colaborador_id as string) })) as Asignacion[];
+      return (data ?? []) as AsignacionDetalle[];
     },
   });
 
-  const horasQ = useQuery({
-    queryKey: ["horas-proyecto", proyectoActual?.id],
-    enabled: sustentaConfigurado && !!proyectoActual,
-    queryFn: async () => {
-      const { data, error } = await sustenta
-        .from("hr_registro_hora")
-        .select("colaborador_id, horas")
-        .eq("proyecto_id", proyectoActual!.id);
-      if (error) throw error;
-      return (data ?? []) as Partial<RegistroHora>[];
-    },
-  });
+  const detalle = useMemo(() => asignacionesQ.data ?? [], [asignacionesQ.data]);
 
-  const horasPorAsignacion = useMemo(() => {
-    const mapa = new Map<string, number>();
-    for (const r of horasQ.data ?? []) {
-      const k = r.colaborador_id ?? "";
-      mapa.set(k, (mapa.get(k) ?? 0) + Number(r.horas ?? 0));
-    }
-    return mapa;
-  }, [horasQ.data]);
+  const horasPorAsignacion = useMemo(
+    () => new Map(detalle.map((a) => [a.id, Number(a.horas_registradas ?? 0)])),
+    [detalle],
+  );
 
-  const asignaciones = asignacionesQ.data ?? [];
+  const asignaciones = useMemo(
+    () =>
+      detalle.map((d) => ({
+        id: d.id,
+        proyecto_id: d.proyecto_id,
+        colaborador_id: d.colaborador_id,
+        rol_proyecto: d.rol_proyecto,
+        dedicacion_pct: d.dedicacion_pct,
+        fecha_inicio: d.fecha_inicio,
+        fecha_fin: d.fecha_fin,
+        cobrable: d.cobrable,
+        colaborador: { id: d.colaborador_id, nombre: d.colaborador, rol: "colaborador" },
+      })) as Asignacion[],
+    [detalle],
+  );
+
 
   const eliminar = useMutation({
     mutationFn: async (id: string) => {
