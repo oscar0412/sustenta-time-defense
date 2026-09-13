@@ -629,7 +629,7 @@ const CSS_DOCUMENTO = `
 .doc-tabla-caratula tbody th { width: 26%; }
 .doc-mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 8.5pt; }
 .doc-hash { word-break: break-all; }
-.doc-der { text-align: right; }
+.doc-der, .doc-tabla th.doc-der, .doc-tabla td.doc-der { text-align: right; }
 .doc-estado {
   font-family: Montserrat, sans-serif;
   font-weight: 700;
@@ -677,7 +677,7 @@ const CSS_DOCUMENTO = `
 @media print {
   @page { size: A4; margin: 2.5cm; }
   .doc-raiz { background: #fff; padding: 0; }
-  .doc-hoja { width: auto; margin: 0; padding: 0; box-shadow: none; }
+  .doc-hoja { width: auto; margin: 0; padding: 0 0 1.2cm; box-shadow: none; }
   .doc-boton-pdf { display: none !important; }
   .doc-caratula { break-after: page; }
   .doc-tabla { break-inside: auto; }
@@ -688,7 +688,7 @@ const CSS_DOCUMENTO = `
   .doc-pie-fijo {
     display: block;
     position: fixed;
-    bottom: -1.6cm;
+    bottom: 0;
     left: 0;
     right: 0;
     text-align: center;
