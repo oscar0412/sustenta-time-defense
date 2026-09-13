@@ -22,11 +22,11 @@ export const Route = createFileRoute("/auth")({
 const CLAVE_DEMO = "Sustenta2026!";
 
 const CUENTAS = [
-  { email: "oroque@accorporativo.pe", nombre: "Óscar Roque", rol: "Colaborador" },
-  { email: "cneyra@accorporativo.pe", nombre: "Carla Neyra", rol: "Jefatura" },
-  { email: "msalcedo@accorporativo.pe", nombre: "María Salcedo", rol: "Administración" },
-  { email: "fugaz@accorporativo.pe", nombre: "Fernando Ugaz", rol: "Finanzas" },
-  { email: "pvergara@accorporativo.pe", nombre: "Paola Vergara", rol: "Tributaria" },
+  { email: "oroque@accorporativo.pe", nombre: "Óscar Roque Anampa", rol: "Colaborador" },
+  { email: "cneyra@accorporativo.pe", nombre: "Claudia Neyra Vílchez", rol: "Jefatura" },
+  { email: "msalcedo@accorporativo.pe", nombre: "Mónica Salcedo Ruiz", rol: "Administración" },
+  { email: "fugaz@accorporativo.pe", nombre: "Fernando Ugaz Prado", rol: "Finanzas" },
+  { email: "pvergara@accorporativo.pe", nombre: "Patricia Vergara Lume", rol: "Gestión Tributaria" },
 ];
 
 function Auth() {
