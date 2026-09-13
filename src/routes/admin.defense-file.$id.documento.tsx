@@ -85,11 +85,11 @@ function Documento() {
   const periodoTexto = typeof c["periodo"] === "string" ? String(c["periodo"]) : null;
   const prestador = parte(c["prestador"]);
   const receptor = parte(c["receptor"]);
-  const servicios = lista(c["servicios"]).map((s) => ({
+  const servicios: Json[] = lista(c["servicios"]).map((s) => ({
     ...s,
     descripcion: s["descripcion"] ?? s["servicio"] ?? null,
   }));
-  const personal = lista(c["personal"]).map((p) => ({
+  const personal: Json[] = lista(c["personal"]).map((p) => ({
     ...p,
     horas_periodo: p["horas_periodo"] ?? p["horas"] ?? null,
     condicion: p["condicion"] ?? p["dedicacion"] ?? null,
