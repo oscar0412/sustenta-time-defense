@@ -122,7 +122,15 @@ function DefenseFilePantalla() {
         p_periodo: periodoSeleccionadoId,
       });
       if (error) throw error;
-      return (Array.isArray(data) ? data[0] : data) as DefenseFile;
+      const generado = (Array.isArray(data) ? data[0] : data) as DefenseFile;
+      // La función devuelve la cabecera; el documento completo se vuelve a leer por id.
+      const { data: completo, error: errorLectura } = await sustenta
+        .from("hr_defense_file")
+        .select("*")
+        .eq("id", generado.id)
+        .single();
+      if (errorLectura) throw errorLectura;
+      return (completo ?? generado) as DefenseFile;
     },
     onSuccess: (df) => {
       setErrorBD(null);
