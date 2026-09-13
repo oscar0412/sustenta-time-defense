@@ -168,7 +168,7 @@ function MiCapacidad() {
               {asignaciones.map((a) => {
                 const objetivo = Number(a.horas_esperadas ?? 0);
                 return (
-                  <div key={a.id}>
+                  <div key={`${a.proyecto_id}-${a.colaborador_id}-${a.periodo_id}`}>
                     <BarraH
                       etiqueta={`${a.proyecto_codigo ?? ""} · ${a.proyecto_nombre ?? ""}`}
                       detalle={`${horasMinutos(a.horas_registradas)} / ${horasMinutos(objetivo)}`}

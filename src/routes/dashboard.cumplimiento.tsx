@@ -67,7 +67,7 @@ function Cumplimiento() {
       ? filas.reduce((a, f) => a + (Number(f.pct_con_evidencia ?? 0) * Number(f.horas ?? 0)) / 100, 0) / horas * 100
       : 0;
   const sellados = filas.filter((f) => Number(f.expedientes_sellados ?? 0) > 0).length;
-  const liquidacionCalculada = (liquidacionQ.data?.length ?? 0) > 0;
+  const liquidacionCalculada = (liquidacionQ.data ?? []).some((f) => f.total_facturar != null);
   const importe = liquidacionCalculada
     ? (liquidacionQ.data ?? []).reduce((a, f) => a + Number(f.total_facturar ?? 0), 0)
     : null;
