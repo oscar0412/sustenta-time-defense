@@ -84,7 +84,7 @@ function RegistroHoras() {
     enabled: habilitado,
     queryFn: async () => {
       const { data, error } = await sustenta
-        .from("asignacion")
+        .from("hr_asignacion")
         .select("*, proyecto:proyecto_id(*)")
         .eq("colaborador_id", colaboradorId);
       if (error) throw error;
@@ -96,7 +96,7 @@ function RegistroHoras() {
     queryKey: ["actividades"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("actividad").select("*");
+      const { data, error } = await sustenta.from("hr_actividad").select("*");
       if (error) throw error;
       return (data ?? []) as Actividad[];
     },
@@ -106,7 +106,7 @@ function RegistroHoras() {
     queryKey: ["empresas"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("empresa_vinculada").select("*");
+      const { data, error } = await sustenta.from("hr_empresa_vinculada").select("*");
       if (error) throw error;
       return (data ?? []) as EmpresaVinculada[];
     },
@@ -120,7 +120,7 @@ function RegistroHoras() {
     enabled: habilitado,
     queryFn: async () => {
       const { data, error } = await sustenta
-        .from("registro_hora")
+        .from("hr_registro_hora")
         .select("*")
         .eq("colaborador_id", colaboradorId)
         .gte("fecha", desde)
@@ -134,7 +134,7 @@ function RegistroHoras() {
     queryKey: ["feriados", desde],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("feriado").select("*").gte("fecha", desde).lte("fecha", hasta);
+      const { data, error } = await sustenta.from("hr_feriado").select("*").gte("fecha", desde).lte("fecha", hasta);
       if (error) throw error;
       return (data ?? []) as Feriado[];
     },
@@ -144,7 +144,7 @@ function RegistroHoras() {
     queryKey: ["incidencias", colaboradorId],
     enabled: habilitado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("incidencia").select("*").eq("colaborador_id", colaboradorId);
+      const { data, error } = await sustenta.from("hr_incidencia").select("*").eq("colaborador_id", colaboradorId);
       if (error) throw error;
       return (data ?? []) as Incidencia[];
     },
@@ -216,7 +216,7 @@ function RegistroHoras() {
         horas: Number(horas),
         descripcion,
       };
-      const { data, error } = await sustenta.from("registro_hora").insert(fila).select("*").single();
+      const { data, error } = await sustenta.from("hr_registro_hora").insert(fila).select("*").single();
       if (error) throw error;
       const registro = data as RegistroHora;
 
@@ -224,7 +224,7 @@ function RegistroHoras() {
         const ruta = `${colaboradorId}/${iso(dia)}/${Date.now()}-${archivo.name}`;
         const up = await sustenta.storage.from("sustentos").upload(ruta, archivo);
         if (up.error) throw up.error;
-        const { error: errSustento } = await sustenta.from("sustento").insert({
+        const { error: errSustento } = await sustenta.from("hr_sustento").insert({
           registro_hora_id: registro.id,
           archivo: ruta,
           nombre: archivo.name,

@@ -29,7 +29,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     queryKey: ["colaboradores"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("colaborador").select("*").limit(300);
+      const { data, error } = await sustenta.from("hr_colaborador").select("*").limit(300);
       if (error) throw error;
       return (data ?? []) as Colaborador[];
     },
@@ -39,7 +39,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     queryKey: ["periodos"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("periodo").select("*").limit(60);
+      const { data, error } = await sustenta.from("hr_periodo").select("*").limit(60);
       if (error) throw error;
       return (data ?? []) as Periodo[];
     },

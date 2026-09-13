@@ -44,7 +44,7 @@ function Asignaciones() {
     queryKey: ["proyectos"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("proyecto").select("*");
+      const { data, error } = await sustenta.from("hr_proyecto").select("*");
       if (error) throw error;
       return (data ?? []) as Proyecto[];
     },
@@ -58,7 +58,7 @@ function Asignaciones() {
     enabled: sustentaConfigurado && !!proyectoActual,
     queryFn: async () => {
       const { data, error } = await sustenta
-        .from("asignacion")
+        .from("hr_asignacion")
         .select("*, colaborador:colaborador_id(*)")
         .eq("proyecto_id", proyectoActual!.id);
       if (error) throw error;
@@ -71,7 +71,7 @@ function Asignaciones() {
     enabled: sustentaConfigurado && !!proyectoActual,
     queryFn: async () => {
       const { data, error } = await sustenta
-        .from("registro_hora")
+        .from("hr_registro_hora")
         .select("colaborador_id, horas, asignacion_id")
         .eq("proyecto_id", proyectoActual!.id);
       if (error) throw error;
@@ -92,7 +92,7 @@ function Asignaciones() {
 
   const eliminar = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await sustenta.from("asignacion").delete().eq("id", id);
+      const { error } = await sustenta.from("hr_asignacion").delete().eq("id", id);
       if (error) throw error;
       return id;
     },
@@ -110,7 +110,7 @@ function Asignaciones() {
 
   const actualizar = useMutation({
     mutationFn: async ({ id, fecha_fin }: { id: string; fecha_fin: string | null }) => {
-      const { error } = await sustenta.from("asignacion").update({ fecha_fin }).eq("id", id);
+      const { error } = await sustenta.from("hr_asignacion").update({ fecha_fin }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
