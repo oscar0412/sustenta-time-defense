@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminCostosRouteImport } from './routes/admin.costos'
 import { Route as AdminDefenseFileRouteImport } from './routes/admin.defense-file'
 import { Route as AdminIncidenciasRouteImport } from './routes/admin.incidencias'
@@ -26,6 +27,11 @@ import { Route as ProyectosAsignacionesRouteImport } from './routes/proyectos.as
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCostosRoute = AdminCostosRouteImport.update({
@@ -91,6 +97,7 @@ const ProyectosAsignacionesRoute = ProyectosAsignacionesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/admin/costos': typeof AdminCostosRoute
   '/admin/defense-file': typeof AdminDefenseFileRoute
   '/admin/incidencias': typeof AdminIncidenciasRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/admin/costos': typeof AdminCostosRoute
   '/admin/defense-file': typeof AdminDefenseFileRoute
   '/admin/incidencias': typeof AdminIncidenciasRoute
@@ -122,6 +130,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/admin/costos': typeof AdminCostosRoute
   '/admin/defense-file': typeof AdminDefenseFileRoute
   '/admin/incidencias': typeof AdminIncidenciasRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/admin/costos'
     | '/admin/defense-file'
     | '/admin/incidencias'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/admin/costos'
     | '/admin/defense-file'
     | '/admin/incidencias'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/admin/costos'
     | '/admin/defense-file'
     | '/admin/incidencias'
@@ -185,6 +197,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   AdminCostosRoute: typeof AdminCostosRoute
   AdminDefenseFileRoute: typeof AdminDefenseFileRoute
   AdminIncidenciasRoute: typeof AdminIncidenciasRoute
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/costos': {
@@ -297,6 +317,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   AdminCostosRoute: AdminCostosRoute,
   AdminDefenseFileRoute: AdminDefenseFileRoute,
   AdminIncidenciasRoute: AdminIncidenciasRoute,

@@ -23,12 +23,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { rol, cargando } = useSesion();
+  const { rol, session, autenticando, colaborador } = useSesion();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!cargando) navigate({ to: primeraRuta(rol), replace: true });
-  }, [rol, cargando, navigate]);
+    if (autenticando) return;
+    if (!session) navigate({ to: "/auth", replace: true });
+    else if (colaborador) navigate({ to: primeraRuta(rol), replace: true });
+  }, [rol, session, autenticando, colaborador, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

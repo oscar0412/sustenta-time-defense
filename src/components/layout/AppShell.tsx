@@ -194,7 +194,21 @@ export function PageHeader({
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { configurado } = useSesion();
+  const { configurado, session, autenticando } = useSesion();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!autenticando && !session) navigate({ to: "/auth", replace: true });
+  }, [autenticando, session, navigate]);
+
+  if (!session) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <p className="text-[13px] text-muted-foreground">Verificando sesión…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       <Sidebar />
