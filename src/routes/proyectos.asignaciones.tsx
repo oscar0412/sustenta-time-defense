@@ -79,7 +79,7 @@ function Asignaciones() {
     queryFn: async () => {
       const { data, error } = await sustenta
         .from("hr_registro_hora")
-        .select("colaborador_id, horas, asignacion_id")
+        .select("colaborador_id, horas")
         .eq("proyecto_id", proyectoActual!.id);
       if (error) throw error;
       return (data ?? []) as Partial<RegistroHora>[];
