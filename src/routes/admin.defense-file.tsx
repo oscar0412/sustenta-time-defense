@@ -93,15 +93,33 @@ function DefenseFilePantalla() {
   });
 
   const empresas = empresasQ.data ?? [];
-  const periodosCerrados = periodos.filter((p) => (p.estado ?? "").toLowerCase() === "cerrado");
+  const periodosCerradosBase = periodos.filter((p) => (p.estado ?? "").toLowerCase() === "cerrado");
+  const periodosCerrados = periodosCerradosBase;
+  // El expediente solo existe sobre periodos cerrados: se abre en el último cerrado.
+  const periodoElegido = periodos.find((p) => p.id === periodoId) ?? periodosCerrados[0] ?? null;
   const empresa = empresas.find((e) => e.id === empresaId) ?? null;
-  const periodo = periodos.find((p) => p.id === periodoId) ?? null;
+  const periodo = periodoElegido;
+  const periodoSeleccionadoId = periodoElegido?.id ?? "";
+
+  const liquidacionQ = useQuery({
+    queryKey: ["liquidacion-defense", periodoSeleccionadoId],
+    enabled: sustentaConfigurado && !!periodoSeleccionadoId,
+    queryFn: async () => {
+      const { data, error } = await sustenta
+        .from("hr_liquidacion")
+        .select("periodo_id")
+        .eq("periodo_id", periodoSeleccionadoId);
+      if (error) throw error;
+      return (data ?? []).length;
+    },
+  });
+  const sinLiquidacion = liquidacionQ.data === 0;
 
   const generar = useMutation({
     mutationFn: async () => {
       const { data, error } = await sustenta.rpc("hr_generar_defense_file", {
         p_empresa: empresaId,
-        p_periodo: periodoId,
+        p_periodo: periodoSeleccionadoId,
       });
       if (error) throw error;
       return (Array.isArray(data) ? data[0] : data) as DefenseFile;
@@ -196,8 +214,12 @@ function DefenseFilePantalla() {
               </div>
               <div>
                 <Etiqueta>Periodo cerrado</Etiqueta>
-                <select className="field mt-1" value={periodoId} onChange={(e) => setPeriodoId(e.target.value)}>
-                  <option value="">Selecciona un periodo</option>
+                <select
+                  className="field mt-1"
+                  value={periodoSeleccionadoId}
+                  onChange={(e) => setPeriodoId(e.target.value)}
+                >
+                  {periodosCerrados.length === 0 ? <option value="">Sin periodos cerrados</option> : null}
                   {periodosCerrados.map((p) => (
                     <option key={p.id} value={p.id}>
                       {nombrePeriodo(p)}
@@ -207,7 +229,7 @@ function DefenseFilePantalla() {
               </div>
               <Button
                 variante="primario"
-                disabled={!empresaId || !periodoId}
+                disabled={!empresaId || !periodoSeleccionadoId || sinLiquidacion}
                 cargando={generar.isPending}
                 onClick={() => generar.mutate()}
               >
@@ -215,6 +237,14 @@ function DefenseFilePantalla() {
                 Generar expediente
               </Button>
             </div>
+            {sinLiquidacion ? (
+              <div className="px-4 pb-4">
+                <Aviso tono="alerta" titulo="Este periodo no tiene liquidación calculada">
+                  {nombrePeriodo(periodo)} está cerrado pero aún no tiene importes liquidados, así que no hay
+                  base para armar el expediente. Calcula los costos y la liquidación del periodo primero.
+                </Aviso>
+              </div>
+            ) : null}
             {errorBD ? (
               <div className="px-4 pb-4">
                 <Aviso tono="acento" titulo="La base rechazó la operación">

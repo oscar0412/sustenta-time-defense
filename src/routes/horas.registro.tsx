@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addMonths,
@@ -65,11 +65,24 @@ function dedicacionDe(a: Asignacion): number | null {
 }
 
 function RegistroHoras() {
-  const { colaborador } = useSesion();
+  const { colaborador, periodos, periodoActivo } = useSesion();
   const qc = useQueryClient();
   const colaboradorId = colaborador?.id ?? null;
 
   const [mes, setMes] = useState(() => startOfMonth(new Date()));
+  const mesTocado = useRef(false);
+
+  // Por defecto se abre en el periodo abierto; el usuario puede navegar a otros meses.
+  useEffect(() => {
+    if (mesTocado.current || !periodoActivo?.anio || !periodoActivo?.mes) return;
+    setMes(new Date(periodoActivo.anio, periodoActivo.mes - 1, 1));
+  }, [periodoActivo]);
+
+  function irAMes(nuevo: Date) {
+    mesTocado.current = true;
+    setMes(nuevo);
+    setDia(null);
+  }
   const [asignacionId, setAsignacionId] = useState<string>("");
   const [dia, setDia] = useState<Date | null>(null);
   const [actividadId, setActividadId] = useState("");
@@ -182,6 +195,14 @@ function RegistroHoras() {
   const feriados = feriadosQ.data ?? [];
   const incidencias = incidenciasQ.data ?? [];
 
+  const periodoDelMes = useMemo(
+    () => periodos.find((p) => p.anio === mes.getFullYear() && p.mes === mes.getMonth() + 1) ?? null,
+    [periodos, mes],
+  );
+  const mesCerrado = (periodoDelMes?.estado ?? "").toLowerCase() === "cerrado";
+  const mesSinPeriodo = !periodoDelMes;
+  const soloLectura = mesCerrado || mesSinPeriodo;
+
   const dias = useMemo(
     () => eachDayOfInterval({ start: startOfMonth(mes), end: endOfMonth(mes) }),
     [mes],
@@ -227,7 +248,6 @@ function RegistroHoras() {
       const fila: Record<string, unknown> = {
         colaborador_id: colaboradorId,
         proyecto_id: asignacion.proyecto_id,
-        asignacion_id: asignacion.id,
         actividad_id: actividadId || null,
         fecha: iso(dia),
         horas: Number(horas),
@@ -318,13 +338,13 @@ function RegistroHoras() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <Button variante="fantasma" onClick={() => setMes(subMonths(mes, 1))} aria-label="Mes anterior">
+                <Button variante="fantasma" onClick={() => irAMes(subMonths(mes, 1))} aria-label="Mes anterior">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Num className="text-[13px] font-semibold capitalize">
                   {format(mes, "MMMM yyyy", { locale: es })}
                 </Num>
-                <Button variante="fantasma" onClick={() => setMes(addMonths(mes, 1))} aria-label="Mes siguiente">
+                <Button variante="fantasma" onClick={() => irAMes(addMonths(mes, 1))} aria-label="Mes siguiente">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -341,7 +361,7 @@ function RegistroHoras() {
                 {dias.map((d) => {
                   const st = estadoDia(d);
                   const activo = dia && isSameDay(d, dia);
-                  const permitido = dentroDeVigencia(d) && st !== "feriado" && st !== "no_laborable";
+                  const permitido = !soloLectura && dentroDeVigencia(d) && st !== "feriado" && st !== "no_laborable";
                   const estilos: Record<string, string> = {
                     completo: "bg-success-soft text-success border-success/25",
                     parcial: "bg-warning-soft text-warning border-warning/25",
@@ -369,6 +389,16 @@ function RegistroHoras() {
                 })}
               </div>
 
+              {soloLectura ? (
+                <div className="mt-3">
+                  <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "Mes cerrado: solo lectura" : "Mes sin periodo abierto"}>
+                    {mesCerrado
+                      ? `${format(mes, "MMMM yyyy", { locale: es })} está cerrado. Sus registros quedan sellados como evidencia; cualquier corrección exige reabrir el periodo desde Administración.`
+                      : `No existe un periodo creado para ${format(mes, "MMMM yyyy", { locale: es })}, así que no admite registros.`}
+                  </Aviso>
+                </div>
+              ) : null}
+
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <Badge tono="exito">Completo</Badge>
                 <Badge tono="alerta">Parcial</Badge>
@@ -386,7 +416,15 @@ function RegistroHoras() {
               titulo={dia ? `Día ${format(dia, "dd/MM/yyyy")}` : "Selecciona un día"}
               descripcion="Registra horas con actividad, descripción y evidencia."
             />
-            {!dia ? (
+            {soloLectura ? (
+              <div className="p-4">
+                <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "El periodo está cerrado" : "Mes sin periodo abierto"}>
+                  {mesCerrado
+                    ? "No se admiten nuevos registros ni modificaciones sobre un mes cerrado. Para corregir horas de este periodo, Administración debe reabrirlo."
+                    : "Este mes no tiene un periodo creado, por eso no admite registros."}
+                </Aviso>
+              </div>
+            ) : !dia ? (
               <Vacio mensaje="Elige una fecha habilitada del calendario para registrar horas." />
             ) : (
               <div className="space-y-4 p-4">
