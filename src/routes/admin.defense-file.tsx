@@ -160,6 +160,7 @@ function DefenseFilePantalla() {
     onSuccess: (df) => {
       setErrorBD(null);
       setExpediente(df);
+      qc.invalidateQueries({ queryKey: ["defense-file", empresaId, periodoSeleccionadoId] });
       toast.success("Expediente generado");
     },
     onError: (e) => {
