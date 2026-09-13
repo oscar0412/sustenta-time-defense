@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminCostosRouteImport } from './routes/admin.costos'
+import { Route as AdminDefenseFileRouteImport } from './routes/admin.defense-file'
 import { Route as AdminIncidenciasRouteImport } from './routes/admin.incidencias'
 import { Route as AdminJornadaRouteImport } from './routes/admin.jornada'
 import { Route as AdminLiquidacionRouteImport } from './routes/admin.liquidacion'
@@ -20,6 +21,7 @@ import { Route as DashboardCumplimientoRouteImport } from './routes/dashboard.cu
 import { Route as HorasCapacidadRouteImport } from './routes/horas.capacidad'
 import { Route as HorasRegistroRouteImport } from './routes/horas.registro'
 import { Route as ProyectosIndexRouteImport } from './routes/proyectos.index'
+import { Route as ProyectosAsignacionesRouteImport } from './routes/proyectos.asignaciones'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminCostosRoute = AdminCostosRouteImport.update({
   id: '/admin/costos',
   path: '/admin/costos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDefenseFileRoute = AdminDefenseFileRouteImport.update({
+  id: '/admin/defense-file',
+  path: '/admin/defense-file',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIncidenciasRoute = AdminIncidenciasRouteImport.update({
@@ -76,10 +83,16 @@ const ProyectosIndexRoute = ProyectosIndexRouteImport.update({
   path: '/proyectos/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProyectosAsignacionesRoute = ProyectosAsignacionesRouteImport.update({
+  id: '/proyectos/asignaciones',
+  path: '/proyectos/asignaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/costos': typeof AdminCostosRoute
+  '/admin/defense-file': typeof AdminDefenseFileRoute
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
@@ -88,11 +101,13 @@ export interface FileRoutesByFullPath {
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
   '/horas/capacidad': typeof HorasCapacidadRoute
   '/horas/registro': typeof HorasRegistroRoute
+  '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos/': typeof ProyectosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/costos': typeof AdminCostosRoute
+  '/admin/defense-file': typeof AdminDefenseFileRoute
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
@@ -101,12 +116,14 @@ export interface FileRoutesByTo {
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
   '/horas/capacidad': typeof HorasCapacidadRoute
   '/horas/registro': typeof HorasRegistroRoute
+  '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos': typeof ProyectosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin/costos': typeof AdminCostosRoute
+  '/admin/defense-file': typeof AdminDefenseFileRoute
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
@@ -115,6 +132,7 @@ export interface FileRoutesById {
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
   '/horas/capacidad': typeof HorasCapacidadRoute
   '/horas/registro': typeof HorasRegistroRoute
+  '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos/': typeof ProyectosIndexRoute
 }
 export interface FileRouteTypes {
@@ -122,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin/costos'
+    | '/admin/defense-file'
     | '/admin/incidencias'
     | '/admin/jornada'
     | '/admin/liquidacion'
@@ -130,11 +149,13 @@ export interface FileRouteTypes {
     | '/dashboard/cumplimiento'
     | '/horas/capacidad'
     | '/horas/registro'
+    | '/proyectos/asignaciones'
     | '/proyectos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin/costos'
+    | '/admin/defense-file'
     | '/admin/incidencias'
     | '/admin/jornada'
     | '/admin/liquidacion'
@@ -143,11 +164,13 @@ export interface FileRouteTypes {
     | '/dashboard/cumplimiento'
     | '/horas/capacidad'
     | '/horas/registro'
+    | '/proyectos/asignaciones'
     | '/proyectos'
   id:
     | '__root__'
     | '/'
     | '/admin/costos'
+    | '/admin/defense-file'
     | '/admin/incidencias'
     | '/admin/jornada'
     | '/admin/liquidacion'
@@ -156,12 +179,14 @@ export interface FileRouteTypes {
     | '/dashboard/cumplimiento'
     | '/horas/capacidad'
     | '/horas/registro'
+    | '/proyectos/asignaciones'
     | '/proyectos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminCostosRoute: typeof AdminCostosRoute
+  AdminDefenseFileRoute: typeof AdminDefenseFileRoute
   AdminIncidenciasRoute: typeof AdminIncidenciasRoute
   AdminJornadaRoute: typeof AdminJornadaRoute
   AdminLiquidacionRoute: typeof AdminLiquidacionRoute
@@ -170,6 +195,7 @@ export interface RootRouteChildren {
   DashboardCumplimientoRoute: typeof DashboardCumplimientoRoute
   HorasCapacidadRoute: typeof HorasCapacidadRoute
   HorasRegistroRoute: typeof HorasRegistroRoute
+  ProyectosAsignacionesRoute: typeof ProyectosAsignacionesRoute
   ProyectosIndexRoute: typeof ProyectosIndexRoute
 }
 
@@ -187,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/costos'
       fullPath: '/admin/costos'
       preLoaderRoute: typeof AdminCostosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/defense-file': {
+      id: '/admin/defense-file'
+      path: '/admin/defense-file'
+      fullPath: '/admin/defense-file'
+      preLoaderRoute: typeof AdminDefenseFileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/incidencias': {
@@ -252,12 +285,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProyectosIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proyectos/asignaciones': {
+      id: '/proyectos/asignaciones'
+      path: '/proyectos/asignaciones'
+      fullPath: '/proyectos/asignaciones'
+      preLoaderRoute: typeof ProyectosAsignacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminCostosRoute: AdminCostosRoute,
+  AdminDefenseFileRoute: AdminDefenseFileRoute,
   AdminIncidenciasRoute: AdminIncidenciasRoute,
   AdminJornadaRoute: AdminJornadaRoute,
   AdminLiquidacionRoute: AdminLiquidacionRoute,
@@ -266,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardCumplimientoRoute: DashboardCumplimientoRoute,
   HorasCapacidadRoute: HorasCapacidadRoute,
   HorasRegistroRoute: HorasRegistroRoute,
+  ProyectosAsignacionesRoute: ProyectosAsignacionesRoute,
   ProyectosIndexRoute: ProyectosIndexRoute,
 }
 export const routeTree = rootRouteImport
