@@ -61,8 +61,8 @@ export function rangoMes(anio: number, mes: number): { inicio: string; fin: stri
 }
 
 export function esFinDeSemana(iso: string): boolean {
-  const [a, m, d] = iso.split("-").map(Number);
-  const dia = new Date(Date.UTC(a, (m ?? 1) - 1, d)).getUTCDay();
+  const partes = iso.split("-").map(Number);
+  const dia = new Date(Date.UTC(partes[0] ?? 1970, (partes[1] ?? 1) - 1, partes[2] ?? 1)).getUTCDay();
   return dia === 0 || dia === 6;
 }
 
