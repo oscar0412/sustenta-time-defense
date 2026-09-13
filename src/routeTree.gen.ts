@@ -23,6 +23,8 @@ import { Route as HorasCapacidadRouteImport } from './routes/horas.capacidad'
 import { Route as HorasRegistroRouteImport } from './routes/horas.registro'
 import { Route as ProyectosIndexRouteImport } from './routes/proyectos.index'
 import { Route as ProyectosAsignacionesRouteImport } from './routes/proyectos.asignaciones'
+import { Route as AdminDefenseFileIndexRouteImport } from './routes/admin.defense-file.index'
+import { Route as AdminDefenseFileIdDocumentoRouteImport } from './routes/admin.defense-file.$id.documento'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -94,12 +96,23 @@ const ProyectosAsignacionesRoute = ProyectosAsignacionesRouteImport.update({
   path: '/proyectos/asignaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminDefenseFileIndexRoute = AdminDefenseFileIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminDefenseFileRoute,
+} as any)
+const AdminDefenseFileIdDocumentoRoute =
+  AdminDefenseFileIdDocumentoRouteImport.update({
+    id: '/$id/documento',
+    path: '/$id/documento',
+    getParentRoute: () => AdminDefenseFileRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin/costos': typeof AdminCostosRoute
-  '/admin/defense-file': typeof AdminDefenseFileRoute
+  '/admin/defense-file': typeof AdminDefenseFileRouteWithChildren
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
@@ -110,12 +123,13 @@ export interface FileRoutesByFullPath {
   '/horas/registro': typeof HorasRegistroRoute
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos/': typeof ProyectosIndexRoute
+  '/admin/defense-file/': typeof AdminDefenseFileIndexRoute
+  '/admin/defense-file/$id/documento': typeof AdminDefenseFileIdDocumentoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin/costos': typeof AdminCostosRoute
-  '/admin/defense-file': typeof AdminDefenseFileRoute
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
@@ -126,13 +140,15 @@ export interface FileRoutesByTo {
   '/horas/registro': typeof HorasRegistroRoute
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos': typeof ProyectosIndexRoute
+  '/admin/defense-file': typeof AdminDefenseFileIndexRoute
+  '/admin/defense-file/$id/documento': typeof AdminDefenseFileIdDocumentoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin/costos': typeof AdminCostosRoute
-  '/admin/defense-file': typeof AdminDefenseFileRoute
+  '/admin/defense-file': typeof AdminDefenseFileRouteWithChildren
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
@@ -143,6 +159,8 @@ export interface FileRoutesById {
   '/horas/registro': typeof HorasRegistroRoute
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos/': typeof ProyectosIndexRoute
+  '/admin/defense-file/': typeof AdminDefenseFileIndexRoute
+  '/admin/defense-file/$id/documento': typeof AdminDefenseFileIdDocumentoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,12 +179,13 @@ export interface FileRouteTypes {
     | '/horas/registro'
     | '/proyectos/asignaciones'
     | '/proyectos/'
+    | '/admin/defense-file/'
+    | '/admin/defense-file/$id/documento'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/admin/costos'
-    | '/admin/defense-file'
     | '/admin/incidencias'
     | '/admin/jornada'
     | '/admin/liquidacion'
@@ -177,6 +196,8 @@ export interface FileRouteTypes {
     | '/horas/registro'
     | '/proyectos/asignaciones'
     | '/proyectos'
+    | '/admin/defense-file'
+    | '/admin/defense-file/$id/documento'
   id:
     | '__root__'
     | '/'
@@ -193,13 +214,15 @@ export interface FileRouteTypes {
     | '/horas/registro'
     | '/proyectos/asignaciones'
     | '/proyectos/'
+    | '/admin/defense-file/'
+    | '/admin/defense-file/$id/documento'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   AdminCostosRoute: typeof AdminCostosRoute
-  AdminDefenseFileRoute: typeof AdminDefenseFileRoute
+  AdminDefenseFileRoute: typeof AdminDefenseFileRouteWithChildren
   AdminIncidenciasRoute: typeof AdminIncidenciasRoute
   AdminJornadaRoute: typeof AdminJornadaRoute
   AdminLiquidacionRoute: typeof AdminLiquidacionRoute
@@ -312,14 +335,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProyectosAsignacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/defense-file/': {
+      id: '/admin/defense-file/'
+      path: '/'
+      fullPath: '/admin/defense-file/'
+      preLoaderRoute: typeof AdminDefenseFileIndexRouteImport
+      parentRoute: typeof AdminDefenseFileRoute
+    }
+    '/admin/defense-file/$id/documento': {
+      id: '/admin/defense-file/$id/documento'
+      path: '/$id/documento'
+      fullPath: '/admin/defense-file/$id/documento'
+      preLoaderRoute: typeof AdminDefenseFileIdDocumentoRouteImport
+      parentRoute: typeof AdminDefenseFileRoute
+    }
   }
 }
+
+interface AdminDefenseFileRouteChildren {
+  AdminDefenseFileIndexRoute: typeof AdminDefenseFileIndexRoute
+  AdminDefenseFileIdDocumentoRoute: typeof AdminDefenseFileIdDocumentoRoute
+}
+
+const AdminDefenseFileRouteChildren: AdminDefenseFileRouteChildren = {
+  AdminDefenseFileIndexRoute: AdminDefenseFileIndexRoute,
+  AdminDefenseFileIdDocumentoRoute: AdminDefenseFileIdDocumentoRoute,
+}
+
+const AdminDefenseFileRouteWithChildren =
+  AdminDefenseFileRoute._addFileChildren(AdminDefenseFileRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   AdminCostosRoute: AdminCostosRoute,
-  AdminDefenseFileRoute: AdminDefenseFileRoute,
+  AdminDefenseFileRoute: AdminDefenseFileRouteWithChildren,
   AdminIncidenciasRoute: AdminIncidenciasRoute,
   AdminJornadaRoute: AdminJornadaRoute,
   AdminLiquidacionRoute: AdminLiquidacionRoute,
