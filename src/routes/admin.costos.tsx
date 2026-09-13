@@ -71,11 +71,11 @@ function Costos() {
   );
 
   const guardar = useMutation({
-    mutationFn: async ({ colaboradorId, valor }: { colaboradorId: string; valor: number }) => {
+    mutationFn: async ({ fila, valor }: { fila: CapacidadFila; valor: number }) => {
       const { data: existente, error: errSel } = await sustenta
         .from("hr_costo_mensual")
         .select("id")
-        .eq("colaborador_id", colaboradorId)
+        .eq("colaborador_id", fila.colaborador_id)
         .eq("periodo_id", periodoId)
         .maybeSingle();
       if (errSel) throw errSel;
@@ -86,9 +86,14 @@ function Costos() {
           .eq("id", existente.id);
         if (err) throw err;
       } else {
-        const { error: err } = await sustenta
-          .from("hr_costo_mensual")
-          .insert({ colaborador_id: colaboradorId, periodo_id: periodoId, costo_mensual: valor });
+        const { error: err } = await sustenta.from("hr_costo_mensual").insert({
+          colaborador_id: fila.colaborador_id,
+          periodo_id: periodoId,
+          costo_mensual: valor,
+          capacidad_horas: Number(fila.capacidad_bruta ?? 0),
+          horas_incidencia: Number(fila.horas_incidencia ?? 0),
+          horas_productivas: Number(fila.capacidad_productiva ?? 0),
+        });
         if (err) throw err;
       }
     },
