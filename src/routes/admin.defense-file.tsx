@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileCheck2, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,6 +76,7 @@ function Valor({ valor }: { valor: unknown }) {
 }
 
 function DefenseFilePantalla() {
+  const qc = useQueryClient();
   const { periodos, colaborador } = useSesion();
   const [empresaId, setEmpresaId] = useState("");
   const [periodoId, setPeriodoId] = useState("");
@@ -115,6 +116,26 @@ function DefenseFilePantalla() {
   });
   const sinLiquidacion = liquidacionQ.data === 0;
 
+  const expedienteQ = useQuery({
+    queryKey: ["defense-file", empresaId, periodoSeleccionadoId],
+    enabled: sustentaConfigurado && !!empresaId && !!periodoSeleccionadoId,
+    queryFn: async () => {
+      const { data, error } = await sustenta
+        .from("hr_defense_file")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .eq("periodo_id", periodoSeleccionadoId)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as DefenseFile | null;
+    },
+  });
+
+  useEffect(() => {
+    setExpediente(expedienteQ.data ?? null);
+  }, [expedienteQ.data]);
+
   const generar = useMutation({
     mutationFn: async () => {
       const { data, error } = await sustenta.rpc("hr_generar_defense_file", {
@@ -122,11 +143,22 @@ function DefenseFilePantalla() {
         p_periodo: periodoSeleccionadoId,
       });
       if (error) throw error;
-      return (Array.isArray(data) ? data[0] : data) as DefenseFile;
+      // La función no garantiza devolver el id; el documento completo se vuelve a leer por empresa y periodo.
+      const { data: completo, error: errorLectura } = await sustenta
+        .from("hr_defense_file")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .eq("periodo_id", periodoSeleccionadoId)
+        .limit(1)
+        .maybeSingle();
+      if (errorLectura) throw errorLectura;
+      if (!completo) throw new Error("La base generó el expediente, pero no devolvió su contenido.");
+      return completo as DefenseFile;
     },
     onSuccess: (df) => {
       setErrorBD(null);
       setExpediente(df);
+      qc.invalidateQueries({ queryKey: ["defense-file", empresaId, periodoSeleccionadoId] });
       toast.success("Expediente generado");
     },
     onError: (e) => {
@@ -143,7 +175,14 @@ function DefenseFilePantalla() {
         p_usuario: colaborador?.id,
       });
       if (error) throw error;
-      return (Array.isArray(data) ? data[0] : data) as DefenseFile;
+      const sellado = (Array.isArray(data) ? data[0] : data) as DefenseFile;
+      const { data: completo, error: errorLectura } = await sustenta
+        .from("hr_defense_file")
+        .select("*")
+        .eq("id", sellado.id)
+        .single();
+      if (errorLectura) throw errorLectura;
+      return (completo ?? sellado) as DefenseFile;
     },
     onSuccess: (df) => {
       setErrorBD(null);
