@@ -24,6 +24,57 @@ export const Route = createFileRoute("/admin/costos")({
   component: Costos,
 });
 
+interface ColaboradorMin {
+  id: string;
+  documento: string | null;
+  nombres: string | null;
+  apellidos: string | null;
+  activo: boolean | null;
+}
+
+interface FilaCsv {
+  documento: string;
+  costoTexto: string;
+  costo: number | null;
+  nombre: string | null;
+  colaborador_id: string | null;
+  estado: "ok" | "sin-colaborador" | "costo-invalido";
+}
+
+/** Parsea `documento,costo_mensual` y cruza cada documento con los colaboradores. */
+function parsearCsv(texto: string, colaboradores: ColaboradorMin[]): FilaCsv[] {
+  const porDocumento = new Map(colaboradores.map((c) => [(c.documento ?? "").trim(), c]));
+  const lineas = texto
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  if (lineas.length === 0) return [];
+  if (/documento/i.test(lineas[0] ?? "")) lineas.shift();
+
+  return lineas.map((linea) => {
+    const celdas = linea.split(/[,;]/).map((c) => c.trim().replace(/^"|"$/g, ""));
+    const documento = celdas[0] ?? "";
+    const costoTexto = celdas[1] ?? "";
+    const colaborador = porDocumento.get(documento) ?? null;
+    const costo = costoTexto === "" ? null : Number(costoTexto.replace(/\s/g, "").replace(/,/g, "."));
+    const costoValido = costo != null && Number.isFinite(costo) && costo > 0;
+    const estado: FilaCsv["estado"] = !colaborador
+      ? "sin-colaborador"
+      : costoValido
+        ? "ok"
+        : "costo-invalido";
+    return {
+      documento,
+      costoTexto,
+      costo: costoValido ? costo : null,
+      nombre: colaborador ? `${colaborador.nombres ?? ""} ${colaborador.apellidos ?? ""}`.trim() : null,
+      colaborador_id: colaborador?.id ?? null,
+      estado,
+    };
+  });
+}
+
 function Costos() {
   const qc = useQueryClient();
   const { periodo, periodoId, setPeriodoId, periodos } = usePeriodoSeleccionado();
