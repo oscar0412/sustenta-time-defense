@@ -144,15 +144,18 @@ function DefenseFilePantalla() {
         p_periodo: periodoSeleccionadoId,
       });
       if (error) throw error;
-      const generado = (Array.isArray(data) ? data[0] : data) as DefenseFile;
-      // La función devuelve la cabecera; el documento completo se vuelve a leer por id.
+      // La función no garantiza devolver el id; el documento completo se vuelve a leer por empresa y periodo.
       const { data: completo, error: errorLectura } = await sustenta
         .from("hr_defense_file")
         .select("*")
-        .eq("id", generado.id)
-        .single();
+        .eq("empresa_id", empresaId)
+        .eq("periodo_id", periodoSeleccionadoId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (errorLectura) throw errorLectura;
-      return (completo ?? generado) as DefenseFile;
+      if (!completo) throw new Error("La base generó el expediente, pero no devolvió su contenido.");
+      return completo as DefenseFile;
     },
     onSuccess: (df) => {
       setErrorBD(null);
