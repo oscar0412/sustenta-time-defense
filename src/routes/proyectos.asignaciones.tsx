@@ -57,12 +57,19 @@ function Asignaciones() {
     queryKey: ["asignaciones-proyecto", proyectoActual?.id],
     enabled: sustentaConfigurado && !!proyectoActual,
     queryFn: async () => {
+      // Las vistas hr_ no exponen claves foráneas a PostgREST: el cruce se arma aquí.
       const { data, error } = await sustenta
         .from("hr_asignacion")
-        .select("*, colaborador:colaborador_id(*)")
+        .select("*")
         .eq("proyecto_id", proyectoActual!.id);
       if (error) throw error;
-      return (data ?? []) as Asignacion[];
+      const filas = (data ?? []) as Asignacion[];
+      const ids = [...new Set(filas.map((a) => a.colaborador_id).filter(Boolean))] as string[];
+      if (ids.length === 0) return filas;
+      const { data: cols, error: errC } = await sustenta.from("hr_colaborador").select("*").in("id", ids);
+      if (errC) throw errC;
+      const mapa = new Map((cols ?? []).map((c: { id: string }) => [c.id, c]));
+      return filas.map((a) => ({ ...a, colaborador: mapa.get(a.colaborador_id as string) })) as Asignacion[];
     },
   });
 

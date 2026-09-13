@@ -83,12 +83,19 @@ function RegistroHoras() {
     queryKey: ["asignaciones", colaboradorId],
     enabled: habilitado,
     queryFn: async () => {
+      // Las vistas hr_ no exponen claves foráneas a PostgREST: el cruce se arma aquí.
       const { data, error } = await sustenta
         .from("hr_asignacion")
-        .select("*, proyecto:proyecto_id(*)")
+        .select("*")
         .eq("colaborador_id", colaboradorId);
       if (error) throw error;
-      return (data ?? []) as Asignacion[];
+      const filas = (data ?? []) as Asignacion[];
+      const ids = [...new Set(filas.map((a) => a.proyecto_id).filter(Boolean))] as string[];
+      if (ids.length === 0) return filas;
+      const { data: proys, error: errP } = await sustenta.from("hr_proyecto").select("*").in("id", ids);
+      if (errP) throw errP;
+      const mapa = new Map((proys ?? []).map((p: { id: string }) => [p.id, p]));
+      return filas.map((a) => ({ ...a, proyecto: mapa.get(a.proyecto_id as string) })) as Asignacion[];
     },
   });
 
