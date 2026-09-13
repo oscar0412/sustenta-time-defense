@@ -107,7 +107,7 @@ function DefenseFilePantalla() {
     queryFn: async () => {
       const { data, error } = await sustenta
         .from("hr_liquidacion")
-        .select("id")
+        .select("periodo_id")
         .eq("periodo_id", periodoSeleccionadoId);
       if (error) throw error;
       return (data ?? []).length;
