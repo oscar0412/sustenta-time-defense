@@ -248,7 +248,6 @@ function RegistroHoras() {
       const fila: Record<string, unknown> = {
         colaborador_id: colaboradorId,
         proyecto_id: asignacion.proyecto_id,
-        asignacion_id: asignacion.id,
         actividad_id: actividadId || null,
         fecha: iso(dia),
         horas: Number(horas),
