@@ -80,14 +80,25 @@ function Documento() {
   const expediente = expedienteQ.data ?? null;
   const c = useMemo(() => obj(expediente?.["contenido"]) ?? {}, [expediente]);
 
+  // Las versiones antiguas guardaban textos planos donde ahora hay objetos.
   const periodo = obj(c["periodo"]);
-  const prestador = obj(c["prestador"]);
-  const receptor = obj(c["receptor"]);
-  const servicios = lista(c["servicios"]);
-  const personal = lista(c["personal"]);
+  const periodoTexto = typeof c["periodo"] === "string" ? String(c["periodo"]) : null;
+  const prestador = parte(c["prestador"]);
+  const receptor = parte(c["receptor"]);
+  const servicios = lista(c["servicios"]).map((s) => ({
+    ...s,
+    descripcion: s["descripcion"] ?? s["servicio"] ?? null,
+  }));
+  const personal = lista(c["personal"]).map((p) => ({
+    ...p,
+    horas_periodo: p["horas_periodo"] ?? p["horas"] ?? null,
+    condicion: p["condicion"] ?? p["dedicacion"] ?? null,
+    vigencia_asignacion: p["vigencia_asignacion"] ?? p["vigencia"] ?? null,
+  }));
   const detalle = lista(c["horas_detalle"]);
   const evidencia = lista(c["evidencia"]);
   const criterio = obj(c["criterio_asignacion"]);
+  const criterioTexto = typeof c["criterio_asignacion"] === "string" ? String(c["criterio_asignacion"]) : null;
   const valorizacion = lista(c["valorizacion"]);
   const totales = obj(c["totales"]);
   const completitud = obj(c["completitud"]);
@@ -99,7 +110,7 @@ function Documento() {
 
   const etiquetaMes = periodo
     ? etiquetaPeriodo(Number(periodo["anio"]), Number(periodo["mes"]))
-    : NO_DISPONIBLE;
+    : (periodoTexto ?? NO_DISPONIBLE);
   const nombreReceptor = receptor ? txt(receptor["razon_social"]) : NO_DISPONIBLE;
 
   // Resumen de horas por colaborador y proyecto, derivado del detalle diario.
