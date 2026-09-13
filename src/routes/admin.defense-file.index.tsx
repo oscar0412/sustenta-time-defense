@@ -291,6 +291,21 @@ function DefenseFilePantalla() {
                 </Aviso>
               </div>
             ) : null}
+            {expediente ? (
+              <div className="border-t border-border px-4 py-3">
+                <a
+                  href={`/admin/defense-file/${expediente.id}/documento`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-[6px] border border-border-strong bg-surface px-2.5 py-1.5 text-[12px] font-semibold text-foreground hover:bg-surface-muted"
+                >
+                  Ver documento
+                </a>
+                <p className="mt-1.5 text-[12px] text-muted-foreground">
+                  Abre el expediente como documento formal en A4, listo para imprimir o guardar en PDF.
+                </p>
+              </div>
+            ) : null}
           </Card>
 
           {!contenido ? (
