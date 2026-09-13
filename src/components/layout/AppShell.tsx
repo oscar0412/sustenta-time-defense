@@ -8,6 +8,8 @@ import {
   Eye,
   CircleDot,
   AlertCircle,
+  LogOut,
+
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { gruposPorRol, ROLES } from "@/lib/nav";
@@ -91,7 +93,7 @@ function Sidebar() {
 }
 
 function Topbar() {
-  const { colaborador, colaboradores, setColaboradorId, periodoActivo, rol } = useSesion();
+  const { colaborador, session, cerrarSesion, periodoActivo, rol } = useSesion();
   const alcance = ROLES.find((r) => r.valor === rol);
   const estado = (periodoActivo?.estado ?? "—").toLowerCase();
 
@@ -118,28 +120,27 @@ function Topbar() {
           <Bell className="h-4 w-4" />
           <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent" />
         </button>
-        <div className="flex items-center gap-2 border-l border-border pl-3">
+        <div className="flex items-center gap-3 border-l border-border pl-3">
           <div className="text-right leading-tight">
             <p className="text-[13px] font-semibold">{nombreColaborador(colaborador)}</p>
-            <p className="text-[11px] capitalize text-muted-foreground">{rol}</p>
+            <p className="text-[11px] text-muted-foreground">
+              <span className="capitalize">{rol}</span>
+              {session?.user?.email ? ` · ${session.user.email}` : ""}
+            </p>
           </div>
-          <select
-            aria-label="Cambiar usuario"
-            className="field w-40"
-            value={colaborador?.id ?? ""}
-            onChange={(e) => setColaboradorId(e.target.value)}
+          <button
+            onClick={() => void cerrarSesion()}
+            className="inline-flex items-center gap-1.5 rounded-[6px] border border-border-strong px-2.5 py-1.5 text-[12px] font-semibold text-foreground hover:bg-surface-muted"
           >
-            {colaboradores.map((c) => (
-              <option key={c.id} value={c.id}>
-                {nombreColaborador(c)} · {c.rol}
-              </option>
-            ))}
-          </select>
+            <LogOut className="h-3.5 w-3.5" />
+            Salir
+          </button>
         </div>
       </div>
     </header>
   );
 }
+
 
 export interface AccionRapida {
   label: string;
