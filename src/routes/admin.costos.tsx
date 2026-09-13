@@ -58,15 +58,15 @@ function Costos() {
     queryFn: async () => {
       const { data, error: err } = await sustenta
         .from("hr_v_capacidad")
-        .select("colaborador_id, costo_hora")
+        .select("colaborador_id, costo_hora, costo_cargado")
         .eq("periodo_id", anterior!.id);
       if (err) throw err;
-      return (data ?? []) as Pick<CapacidadFila, "colaborador_id" | "costo_hora">[];
+      return (data ?? []) as Pick<CapacidadFila, "colaborador_id" | "costo_hora" | "costo_cargado">[];
     },
   });
 
   const previo = useMemo(
-    () => new Map((previoQ.data ?? []).map((f) => [f.colaborador_id, Number(f.costo_hora ?? 0)])),
+    () => new Map((previoQ.data ?? []).filter((f) => f.costo_cargado && f.costo_hora != null).map((f) => [f.colaborador_id, Number(f.costo_hora)])),
     [previoQ.data],
   );
 
@@ -155,7 +155,10 @@ function Costos() {
           {anterior ? etiquetaPeriodo(anterior.anio, anterior.mes) : "el mes anterior"}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-[2px] bg-accent" /> Sin costo por hora calculable
+          <span className="h-2.5 w-2.5 rounded-[2px] bg-surface-muted ring-1 ring-border" /> Costo mensual sin cargar
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-[2px] bg-accent" /> Costo por hora no calculable
         </span>
       </div>
 
@@ -184,23 +187,26 @@ function Costos() {
               </thead>
               <tbody>
                 {filas.map((f) => {
-                  const ch = Number(f.costo_hora ?? 0);
-                  const sinCosto = !f.costo_hora || ch <= 0;
+                  const cargado = f.costo_cargado === true;
+                  const noCalculable = cargado && f.costo_hora == null;
+                  const ch = f.costo_hora == null ? null : Number(f.costo_hora);
                   const base = previo.get(f.colaborador_id) ?? 0;
-                  const desvio = base > 0 && ch > 0 ? ((ch - base) / base) * 100 : 0;
+                  const desvio = base > 0 && ch != null ? ((ch - base) / base) * 100 : 0;
                   const desviado = Math.abs(desvio) > 15;
                   return (
                     <tr
                       key={f.colaborador_id}
                       className={cn(
                         "border-b border-border last:border-0",
-                        sinCosto ? "bg-accent-soft" : desviado ? "bg-warning-soft" : "",
+                        !cargado ? "bg-surface-muted" : noCalculable ? "bg-accent-soft" : desviado ? "bg-warning-soft" : "",
                       )}
                     >
                       <td className="px-4 py-2">
                         {f.colaborador}
-                        {sinCosto ? (
-                          <Badge tono="acento" className="ml-2">sin costo</Badge>
+                        {!cargado ? (
+                          <Badge tono="neutro" className="ml-2">sin cargar</Badge>
+                        ) : noCalculable ? (
+                          <Badge tono="acento" className="ml-2">no calculable</Badge>
                         ) : desviado ? (
                           <Badge tono="alerta" className="ml-2">
                             {desvio > 0 ? "+" : ""}
@@ -230,14 +236,16 @@ function Costos() {
                             </Button>
                           </div>
                         ) : (
-                          <Num className="tabular-nums">{soles(f.costo_mensual)}</Num>
+                          <Num className="tabular-nums">{cargado ? soles(f.costo_mensual) : "Sin cargar"}</Num>
                         )}
                       </td>
                       <td className="px-4 py-2 text-right"><Num className="tabular-nums">{n(f.capacidad_bruta)}</Num></td>
                       <td className="px-4 py-2 text-right"><Num className="tabular-nums">{n(f.horas_incidencia)}</Num></td>
                       <td className="px-4 py-2 text-right"><Num className="tabular-nums">{n(f.capacidad_productiva)}</Num></td>
                       <td className="px-4 py-2 text-right">
-                        <Num className="tabular-nums font-semibold">{sinCosto ? "—" : soles(ch, 4)}</Num>
+                        <Num className={cn("tabular-nums font-semibold", !cargado ? "text-muted-foreground" : noCalculable ? "text-accent" : "")}>
+                          {!cargado ? "Sin cargar" : noCalculable ? "No calculable" : soles(ch, 4)}
+                        </Num>
                       </td>
                       <td className="px-4 py-2 text-right">
                         {editando === f.colaborador_id ? null : (

@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export function KPIGrid({ children, columnas = 4 }: { children: ReactNode; columnas?: 2 | 3 | 4 }) {
+export function KPIGrid({ children, columnas = 4 }: { children: ReactNode; columnas?: 2 | 3 | 4 | 6 }) {
   return (
     <div
       className={cn(
         "mb-5 grid gap-3",
         columnas === 4 && "sm:grid-cols-2 lg:grid-cols-4",
+        columnas === 6 && "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6",
         columnas === 3 && "sm:grid-cols-3",
         columnas === 2 && "sm:grid-cols-2",
       )}

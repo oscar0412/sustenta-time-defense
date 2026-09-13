@@ -67,7 +67,10 @@ function Cumplimiento() {
       ? filas.reduce((a, f) => a + (Number(f.pct_con_evidencia ?? 0) * Number(f.horas ?? 0)) / 100, 0) / horas * 100
       : 0;
   const sellados = filas.filter((f) => Number(f.expedientes_sellados ?? 0) > 0).length;
-  const importe = (liquidacionQ.data ?? []).reduce((a, f) => a + Number(f.total_facturar ?? 0), 0);
+  const liquidacionCalculada = (liquidacionQ.data?.length ?? 0) > 0;
+  const importe = liquidacionCalculada
+    ? (liquidacionQ.data ?? []).reduce((a, f) => a + Number(f.total_facturar ?? 0), 0)
+    : null;
   const maxHoras = Math.max(1, ...filas.map((f) => Number(f.horas ?? 0)));
 
   const serie = useMemo(() => {
@@ -118,7 +121,7 @@ function Cumplimiento() {
               valor={pct(evidenciaGlobal)}
               tono={evidenciaGlobal > 95 ? "exito" : evidenciaGlobal >= 90 ? "advertencia" : "alerta"}
             />
-            <KPI etiqueta="Importe a facturar" valor={soles(importe)} />
+            <KPI etiqueta="Importe a facturar" valor={liquidacionCalculada ? soles(importe) : "Sin calcular"} nota={liquidacionCalculada ? undefined : "Liquidación no calculada"} />
             <KPI
               etiqueta="Expedientes confirmados"
               valor={`${n(sellados, 0)} / ${n(filas.length, 0)}`}

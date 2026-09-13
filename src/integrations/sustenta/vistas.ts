@@ -53,6 +53,12 @@ export interface AsignacionDetalle {
   horas_registradas: number | null;
 }
 
+export interface AsignacionPeriodo extends AsignacionDetalle {
+  periodo_id: string;
+  dias_habiles_cubiertos: number | null;
+  horas_esperadas: number | null;
+}
+
 export interface CapacidadFila {
   periodo_id: string;
   anio: number;
@@ -72,6 +78,9 @@ export interface CapacidadFila {
   horas_cobrables: number | null;
   costo_mensual: number | null;
   costo_hora: number | null;
+  dedicacion_total_pct: number | null;
+  horas_sin_asignar: number | null;
+  costo_cargado: boolean;
 }
 
 export interface CumplimientoFila {

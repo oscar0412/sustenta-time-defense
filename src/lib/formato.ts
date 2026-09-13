@@ -20,6 +20,16 @@ export function soles(valor: unknown, decimales = 2): string {
   return `S/ ${nf(decimales).format(v)}`;
 }
 
+export function horasMinutos(valor: unknown): string {
+  if (valor === null || valor === undefined) return "—";
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return "—";
+  const minutosTotales = Math.round(numero * 60);
+  const signo = minutosTotales < 0 ? "−" : "";
+  const absolutos = Math.abs(minutosTotales);
+  return `${signo}${Math.floor(absolutos / 60)}:${String(absolutos % 60).padStart(2, "0")}`;
+}
+
 export function pct(valor: unknown, decimales = 1): string {
   const v = Number(valor);
   if (valor === null || valor === undefined || Number.isNaN(v)) return "—";

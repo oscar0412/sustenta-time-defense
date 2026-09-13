@@ -7,8 +7,8 @@ import { BarraH, KPI, KPIGrid } from "@/components/metrics";
 import { SelectorPeriodo, usePeriodoSeleccionado } from "@/components/PeriodoSelector";
 import { useSesion } from "@/context/session";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
-import type { AsignacionDetalle, CapacidadFila, IncidenciaFila } from "@/integrations/sustenta/vistas";
-import { COLORES, etiquetaPeriodo, fechaCorta, n, rangoMes } from "@/lib/formato";
+import type { AsignacionPeriodo, CapacidadFila, IncidenciaFila } from "@/integrations/sustenta/vistas";
+import { COLORES, etiquetaPeriodo, fechaCorta, horasMinutos, n, pct, rangoMes, soles } from "@/lib/formato";
 
 export const Route = createFileRoute("/horas/capacidad")({
   head: () => ({
@@ -42,15 +42,16 @@ function MiCapacidad() {
   });
 
   const asignacionesQ = useQuery({
-    queryKey: ["mis-asignaciones-detalle", colaborador?.id],
-    enabled: sustentaConfigurado && !!colaborador?.id,
+    queryKey: ["mis-asignaciones-periodo", colaborador?.id, periodoId],
+    enabled: sustentaConfigurado && !!colaborador?.id && !!periodoId,
     queryFn: async () => {
       const { data, error } = await sustenta
-        .from("hr_v_asignacion_detalle")
+        .from("hr_v_asignacion_periodo")
         .select("*")
-        .eq("colaborador_id", colaborador!.id);
+        .eq("colaborador_id", colaborador!.id)
+        .eq("periodo_id", periodoId);
       if (error) throw error;
-      return (data ?? []) as AsignacionDetalle[];
+      return (data ?? []) as AsignacionPeriodo[];
     },
   });
 
@@ -76,6 +77,14 @@ function MiCapacidad() {
   const error = capacidadQ.error ?? asignacionesQ.error ?? incidenciasQ.error;
   const asignaciones = asignacionesQ.data ?? [];
   const incidencias = incidenciasQ.data ?? [];
+  const sinAsignar = Number(cap?.horas_sin_asignar ?? 0);
+  const dedicacion = Number(cap?.dedicacion_total_pct ?? 0);
+  const pctSinAsignar = Math.max(0, 100 - dedicacion);
+  const costoEstado = cap?.costo_cargado === false
+    ? "Sin cargar"
+    : cap?.costo_hora == null
+      ? "No calculable"
+      : soles(cap.costo_hora, 4);
 
   return (
     <AppShell>
@@ -100,19 +109,28 @@ function MiCapacidad() {
           />
         </Card>
       ) : (
-        <KPIGrid>
-          <KPI etiqueta="Capacidad bruta" valor={n(cap?.capacidad_bruta)} unidad="h" />
+        <KPIGrid columnas={6}>
+          <KPI etiqueta="Capacidad bruta" valor={horasMinutos(cap?.capacidad_bruta)} />
           <KPI
-            etiqueta="Horas de incidencia"
-            valor={n(cap?.horas_incidencia)}
-            unidad="h"
+            etiqueta="Incidencias"
+            valor={horasMinutos(cap?.horas_incidencia)}
             tono={Number(cap?.horas_incidencia ?? 0) > 0 ? "advertencia" : "neutro"}
           />
-          <KPI etiqueta="Capacidad productiva" valor={n(cap?.capacidad_productiva)} unidad="h" />
+          <KPI etiqueta="Capacidad productiva" valor={horasMinutos(cap?.capacidad_productiva)} />
           <KPI
-            etiqueta="Horas registradas"
-            valor={n(cap?.horas_registradas)}
-            unidad="h"
+            etiqueta="Planificado en proyectos"
+            valor={horasMinutos(cap?.horas_planificadas)}
+            nota={`${pct(dedicacion, 0)} de dedicación`}
+          />
+          <KPI
+            etiqueta="Sin asignar"
+            valor={horasMinutos(cap?.horas_sin_asignar)}
+            nota={pct(pctSinAsignar, 0)}
+            tono={sinAsignar > 0 ? "advertencia" : "neutro"}
+          />
+          <KPI
+            etiqueta="Registrado"
+            valor={horasMinutos(cap?.horas_registradas)}
             tono="exito"
             nota={
               cap?.capacidad_productiva
@@ -123,6 +141,23 @@ function MiCapacidad() {
         </KPIGrid>
       )}
 
+      {cap ? (
+        <div className="mb-5 grid gap-3 lg:grid-cols-2">
+          {sinAsignar > 0 ? (
+            <Aviso tono="alerta" titulo="Capacidad sin asignar">
+              {pct(pctSinAsignar, 0)} de tu capacidad no está asignada a ningún proyecto. Planificado y sin asignar suman {horasMinutos(cap.capacidad_productiva)}.
+            </Aviso>
+          ) : (
+            <Aviso tono="exito" titulo="Capacidad completamente asignada">
+              Toda tu capacidad productiva está planificada en proyectos.
+            </Aviso>
+          )}
+          <Aviso tono={cap.costo_cargado === false ? "neutro" : cap.costo_hora == null ? "acento" : "info"} titulo="Costo por hora del periodo">
+            <Num>{costoEstado}</Num>{cap.costo_cargado === false ? ". Es un pendiente del mes." : ""}
+          </Aviso>
+        </div>
+      ) : null}
+
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader titulo="Consumo por proyecto" descripcion="Horas registradas frente a la dedicación pactada." />
@@ -131,13 +166,12 @@ function MiCapacidad() {
           ) : (
             <div className="space-y-4 px-4 py-4">
               {asignaciones.map((a) => {
-                const jornada = Number(a.jornada_horas ?? 8);
-                const objetivo = (Number(cap?.capacidad_productiva ?? jornada * 20) * Number(a.dedicacion_pct ?? 0)) / 100;
+                const objetivo = Number(a.horas_esperadas ?? 0);
                 return (
                   <div key={a.id}>
                     <BarraH
                       etiqueta={`${a.proyecto_codigo ?? ""} · ${a.proyecto_nombre ?? ""}`}
-                      detalle={`${n(a.horas_registradas)} h / ${n(objetivo)} h`}
+                      detalle={`${horasMinutos(a.horas_registradas)} / ${horasMinutos(objetivo)}`}
                       valor={Number(a.horas_registradas ?? 0)}
                       maximo={objetivo || Number(a.horas_registradas ?? 1)}
                       color={

@@ -59,8 +59,9 @@ function CapacidadEquipo() {
       cobrables: acc.cobrables + Number(f.horas_cobrables ?? 0),
       incidencias: acc.incidencias + Number(f.horas_incidencia ?? 0),
       planificadas: acc.planificadas + Number(f.horas_planificadas ?? 0),
+      sinAsignar: acc.sinAsignar + Number(f.horas_sin_asignar ?? 0),
     }),
-    { productiva: 0, registradas: 0, cobrables: 0, incidencias: 0, planificadas: 0 },
+    { productiva: 0, registradas: 0, cobrables: 0, incidencias: 0, planificadas: 0, sinAsignar: 0 },
   );
 
   const alDia = filas.filter(
@@ -68,13 +69,11 @@ function CapacidadEquipo() {
   ).length;
 
   const planificadoPendiente = Math.max(0, t.planificadas - t.registradas);
-  const sinAsignar = Math.max(0, t.productiva - t.registradas - planificadoPendiente);
-
   const dona = [
     { nombre: "Ejecutado", valor: t.registradas, color: COLORES.ejecutado },
     { nombre: "Incidencias", valor: t.incidencias, color: COLORES.advertencia },
     { nombre: "Planificado sin ejecutar", valor: planificadoPendiente, color: COLORES.alerta },
-    { nombre: "Sin asignar", valor: sinAsignar, color: COLORES.referencia },
+    { nombre: "Sin asignar", valor: t.sinAsignar, color: COLORES.referencia },
   ].filter((d) => d.valor > 0);
 
   const serie = useMemo(() => {
@@ -94,7 +93,8 @@ function CapacidadEquipo() {
       const reg = Number(f.horas_registradas ?? 0);
       const plan = Number(f.horas_planificadas ?? 0);
       const prod = Number(f.capacidad_productiva ?? 0);
-      if (!f.costo_hora) return { c: f, motivo: "Sin costo por hora calculado: no puede liquidarse.", tono: "alerta" as const };
+      if (f.costo_cargado === false) return { c: f, motivo: "Costo mensual sin cargar: es un pendiente del periodo.", tono: "advertencia" as const };
+      if (f.costo_hora == null) return { c: f, motivo: "Costo por hora no calculable: revisa la capacidad productiva.", tono: "alerta" as const };
       if (plan > 0 && reg < plan * 0.9)
         return { c: f, motivo: `Registró ${n(reg)} h de ${n(plan)} h planificadas.`, tono: "advertencia" as const };
       if (prod > 0 && reg > prod)
