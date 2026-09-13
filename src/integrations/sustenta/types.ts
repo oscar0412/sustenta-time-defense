@@ -109,7 +109,7 @@ export interface DefenseFile {
   hash_sha256?: string | null;
   confirmado_por?: string | null;
   confirmado_en?: string | null;
-  created_at?: string | null;
+  creado_en?: string | null;
 }
 
 export function nombreColaborador(c?: Colaborador | null): string {
