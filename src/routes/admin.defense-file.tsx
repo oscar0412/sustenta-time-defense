@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileCheck2, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,6 +76,7 @@ function Valor({ valor }: { valor: unknown }) {
 }
 
 function DefenseFilePantalla() {
+  const qc = useQueryClient();
   const { periodos, colaborador } = useSesion();
   const [empresaId, setEmpresaId] = useState("");
   const [periodoId, setPeriodoId] = useState("");
