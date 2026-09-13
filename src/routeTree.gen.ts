@@ -10,33 +10,193 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminCostosRouteImport } from './routes/admin.costos'
+import { Route as AdminDefenseFileRouteImport } from './routes/admin.defense-file'
+import { Route as AdminIncidenciasRouteImport } from './routes/admin.incidencias'
+import { Route as AdminJornadaRouteImport } from './routes/admin.jornada'
+import { Route as AdminLiquidacionRouteImport } from './routes/admin.liquidacion'
+import { Route as AdminPeriodosRouteImport } from './routes/admin.periodos'
+import { Route as DashboardCapacidadRouteImport } from './routes/dashboard.capacidad'
+import { Route as DashboardCumplimientoRouteImport } from './routes/dashboard.cumplimiento'
+import { Route as HorasCapacidadRouteImport } from './routes/horas.capacidad'
+import { Route as HorasRegistroRouteImport } from './routes/horas.registro'
+import { Route as ProyectosIndexRouteImport } from './routes/proyectos.index'
+import { Route as ProyectosAsignacionesRouteImport } from './routes/proyectos.asignaciones'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCostosRoute = AdminCostosRouteImport.update({
+  id: '/admin/costos',
+  path: '/admin/costos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDefenseFileRoute = AdminDefenseFileRouteImport.update({
+  id: '/admin/defense-file',
+  path: '/admin/defense-file',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIncidenciasRoute = AdminIncidenciasRouteImport.update({
+  id: '/admin/incidencias',
+  path: '/admin/incidencias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminJornadaRoute = AdminJornadaRouteImport.update({
+  id: '/admin/jornada',
+  path: '/admin/jornada',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLiquidacionRoute = AdminLiquidacionRouteImport.update({
+  id: '/admin/liquidacion',
+  path: '/admin/liquidacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPeriodosRoute = AdminPeriodosRouteImport.update({
+  id: '/admin/periodos',
+  path: '/admin/periodos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardCapacidadRoute = DashboardCapacidadRouteImport.update({
+  id: '/dashboard/capacidad',
+  path: '/dashboard/capacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardCumplimientoRoute = DashboardCumplimientoRouteImport.update({
+  id: '/dashboard/cumplimiento',
+  path: '/dashboard/cumplimiento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HorasCapacidadRoute = HorasCapacidadRouteImport.update({
+  id: '/horas/capacidad',
+  path: '/horas/capacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HorasRegistroRoute = HorasRegistroRouteImport.update({
+  id: '/horas/registro',
+  path: '/horas/registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyectosIndexRoute = ProyectosIndexRouteImport.update({
+  id: '/proyectos/',
+  path: '/proyectos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyectosAsignacionesRoute = ProyectosAsignacionesRouteImport.update({
+  id: '/proyectos/asignaciones',
+  path: '/proyectos/asignaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/costos': typeof AdminCostosRoute
+  '/admin/defense-file': typeof AdminDefenseFileRoute
+  '/admin/incidencias': typeof AdminIncidenciasRoute
+  '/admin/jornada': typeof AdminJornadaRoute
+  '/admin/liquidacion': typeof AdminLiquidacionRoute
+  '/admin/periodos': typeof AdminPeriodosRoute
+  '/dashboard/capacidad': typeof DashboardCapacidadRoute
+  '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
+  '/horas/capacidad': typeof HorasCapacidadRoute
+  '/horas/registro': typeof HorasRegistroRoute
+  '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
+  '/proyectos/': typeof ProyectosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/costos': typeof AdminCostosRoute
+  '/admin/defense-file': typeof AdminDefenseFileRoute
+  '/admin/incidencias': typeof AdminIncidenciasRoute
+  '/admin/jornada': typeof AdminJornadaRoute
+  '/admin/liquidacion': typeof AdminLiquidacionRoute
+  '/admin/periodos': typeof AdminPeriodosRoute
+  '/dashboard/capacidad': typeof DashboardCapacidadRoute
+  '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
+  '/horas/capacidad': typeof HorasCapacidadRoute
+  '/horas/registro': typeof HorasRegistroRoute
+  '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
+  '/proyectos': typeof ProyectosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/costos': typeof AdminCostosRoute
+  '/admin/defense-file': typeof AdminDefenseFileRoute
+  '/admin/incidencias': typeof AdminIncidenciasRoute
+  '/admin/jornada': typeof AdminJornadaRoute
+  '/admin/liquidacion': typeof AdminLiquidacionRoute
+  '/admin/periodos': typeof AdminPeriodosRoute
+  '/dashboard/capacidad': typeof DashboardCapacidadRoute
+  '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
+  '/horas/capacidad': typeof HorasCapacidadRoute
+  '/horas/registro': typeof HorasRegistroRoute
+  '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
+  '/proyectos/': typeof ProyectosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin/costos'
+    | '/admin/defense-file'
+    | '/admin/incidencias'
+    | '/admin/jornada'
+    | '/admin/liquidacion'
+    | '/admin/periodos'
+    | '/dashboard/capacidad'
+    | '/dashboard/cumplimiento'
+    | '/horas/capacidad'
+    | '/horas/registro'
+    | '/proyectos/asignaciones'
+    | '/proyectos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin/costos'
+    | '/admin/defense-file'
+    | '/admin/incidencias'
+    | '/admin/jornada'
+    | '/admin/liquidacion'
+    | '/admin/periodos'
+    | '/dashboard/capacidad'
+    | '/dashboard/cumplimiento'
+    | '/horas/capacidad'
+    | '/horas/registro'
+    | '/proyectos/asignaciones'
+    | '/proyectos'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin/costos'
+    | '/admin/defense-file'
+    | '/admin/incidencias'
+    | '/admin/jornada'
+    | '/admin/liquidacion'
+    | '/admin/periodos'
+    | '/dashboard/capacidad'
+    | '/dashboard/cumplimiento'
+    | '/horas/capacidad'
+    | '/horas/registro'
+    | '/proyectos/asignaciones'
+    | '/proyectos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminCostosRoute: typeof AdminCostosRoute
+  AdminDefenseFileRoute: typeof AdminDefenseFileRoute
+  AdminIncidenciasRoute: typeof AdminIncidenciasRoute
+  AdminJornadaRoute: typeof AdminJornadaRoute
+  AdminLiquidacionRoute: typeof AdminLiquidacionRoute
+  AdminPeriodosRoute: typeof AdminPeriodosRoute
+  DashboardCapacidadRoute: typeof DashboardCapacidadRoute
+  DashboardCumplimientoRoute: typeof DashboardCumplimientoRoute
+  HorasCapacidadRoute: typeof HorasCapacidadRoute
+  HorasRegistroRoute: typeof HorasRegistroRoute
+  ProyectosAsignacionesRoute: typeof ProyectosAsignacionesRoute
+  ProyectosIndexRoute: typeof ProyectosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +208,107 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/costos': {
+      id: '/admin/costos'
+      path: '/admin/costos'
+      fullPath: '/admin/costos'
+      preLoaderRoute: typeof AdminCostosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/defense-file': {
+      id: '/admin/defense-file'
+      path: '/admin/defense-file'
+      fullPath: '/admin/defense-file'
+      preLoaderRoute: typeof AdminDefenseFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/incidencias': {
+      id: '/admin/incidencias'
+      path: '/admin/incidencias'
+      fullPath: '/admin/incidencias'
+      preLoaderRoute: typeof AdminIncidenciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/jornada': {
+      id: '/admin/jornada'
+      path: '/admin/jornada'
+      fullPath: '/admin/jornada'
+      preLoaderRoute: typeof AdminJornadaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/liquidacion': {
+      id: '/admin/liquidacion'
+      path: '/admin/liquidacion'
+      fullPath: '/admin/liquidacion'
+      preLoaderRoute: typeof AdminLiquidacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/periodos': {
+      id: '/admin/periodos'
+      path: '/admin/periodos'
+      fullPath: '/admin/periodos'
+      preLoaderRoute: typeof AdminPeriodosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/capacidad': {
+      id: '/dashboard/capacidad'
+      path: '/dashboard/capacidad'
+      fullPath: '/dashboard/capacidad'
+      preLoaderRoute: typeof DashboardCapacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/cumplimiento': {
+      id: '/dashboard/cumplimiento'
+      path: '/dashboard/cumplimiento'
+      fullPath: '/dashboard/cumplimiento'
+      preLoaderRoute: typeof DashboardCumplimientoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/horas/capacidad': {
+      id: '/horas/capacidad'
+      path: '/horas/capacidad'
+      fullPath: '/horas/capacidad'
+      preLoaderRoute: typeof HorasCapacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/horas/registro': {
+      id: '/horas/registro'
+      path: '/horas/registro'
+      fullPath: '/horas/registro'
+      preLoaderRoute: typeof HorasRegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/': {
+      id: '/proyectos/'
+      path: '/proyectos'
+      fullPath: '/proyectos/'
+      preLoaderRoute: typeof ProyectosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/asignaciones': {
+      id: '/proyectos/asignaciones'
+      path: '/proyectos/asignaciones'
+      fullPath: '/proyectos/asignaciones'
+      preLoaderRoute: typeof ProyectosAsignacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminCostosRoute: AdminCostosRoute,
+  AdminDefenseFileRoute: AdminDefenseFileRoute,
+  AdminIncidenciasRoute: AdminIncidenciasRoute,
+  AdminJornadaRoute: AdminJornadaRoute,
+  AdminLiquidacionRoute: AdminLiquidacionRoute,
+  AdminPeriodosRoute: AdminPeriodosRoute,
+  DashboardCapacidadRoute: DashboardCapacidadRoute,
+  DashboardCumplimientoRoute: DashboardCumplimientoRoute,
+  HorasCapacidadRoute: HorasCapacidadRoute,
+  HorasRegistroRoute: HorasRegistroRoute,
+  ProyectosAsignacionesRoute: ProyectosAsignacionesRoute,
+  ProyectosIndexRoute: ProyectosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
