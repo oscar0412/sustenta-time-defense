@@ -30,6 +30,7 @@ import type {
   RegistroHora,
 } from "@/integrations/sustenta/types";
 import { nombreEmpresa } from "@/integrations/sustenta/types";
+import type { AsignacionDetalle } from "@/integrations/sustenta/vistas";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/horas/registro")({
