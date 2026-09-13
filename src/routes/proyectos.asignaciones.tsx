@@ -89,7 +89,7 @@ function Asignaciones() {
   const horasPorAsignacion = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const r of horasQ.data ?? []) {
-      const k = r.asignacion_id ?? r.colaborador_id ?? "";
+      const k = r.colaborador_id ?? "";
       mapa.set(k, (mapa.get(k) ?? 0) + Number(r.horas ?? 0));
     }
     return mapa;
