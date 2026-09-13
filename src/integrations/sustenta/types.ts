@@ -62,6 +62,9 @@ export interface Periodo {
   estado?: string | null;
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
+  observacion?: string | null;
+  cerrado_en?: string | null;
+  cerrado_por?: string | null;
 }
 
 export interface Feriado {
