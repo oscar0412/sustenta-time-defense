@@ -221,9 +221,7 @@ function Costos() {
                             <Button
                               variante="primario"
                               cargando={guardar.isPending}
-                              onClick={() =>
-                                guardar.mutate({ colaboradorId: f.colaborador_id, valor: Number(monto) })
-                              }
+                              onClick={() => guardar.mutate({ fila: f, valor: Number(monto) })}
                             >
                               <Check className="h-3.5 w-3.5" />
                             </Button>
