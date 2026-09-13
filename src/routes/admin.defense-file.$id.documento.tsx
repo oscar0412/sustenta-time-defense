@@ -30,6 +30,11 @@ type Json = Record<string, unknown>;
 function obj(v: unknown): Json | null {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Json) : null;
 }
+/** Acepta tanto el objeto de la versión actual como el texto plano de versiones anteriores. */
+function parte(v: unknown): Json | null {
+  if (typeof v === "string") return { razon_social: v };
+  return obj(v);
+}
 function lista(v: unknown): Json[] {
   return Array.isArray(v) ? (v.filter((x) => x && typeof x === "object") as Json[]) : [];
 }
