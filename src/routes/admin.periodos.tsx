@@ -26,14 +26,14 @@ export const Route = createFileRoute("/admin/periodos")({
 
 function Periodos() {
   const qc = useQueryClient();
-  const { periodos, colaborador } = useSesion();
+  const { periodos, periodoActivo, colaborador } = useSesion();
   const [seleccionado, setSeleccionado] = useState("");
   const [dialogo, setDialogo] = useState(false);
   const [observacion, setObservacion] = useState("");
   const [confirmacion, setConfirmacion] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const periodo = periodos.find((p) => p.id === seleccionado) ?? periodos[0] ?? null;
+  const periodo = periodos.find((p) => p.id === seleccionado) ?? periodoActivo ?? periodos[0] ?? null;
   const periodoId = periodo?.id ?? "";
 
   const registrosQ = useQuery({
@@ -124,7 +124,10 @@ function Periodos() {
                     <button
                       onClick={() => setSeleccionado(p.id)}
                       className={cn(
-                        "flex w-full items-center justify-between border-b border-border px-4 py-3 text-left last:border-0 hover:bg-surface-muted",
+                        "flex w-full items-center justify-between border-b border-l-2 border-border px-4 py-3 text-left last:border-b-0 hover:bg-surface-muted",
+                        (p.estado ?? "").toLowerCase() === "abierto"
+                          ? "border-l-success"
+                          : "border-l-transparent",
                         activo && "bg-surface-muted",
                       )}
                     >
@@ -160,14 +163,22 @@ function Periodos() {
             titulo={`Checklist de cierre · ${etiquetaPeriodo(periodo?.anio, periodo?.mes)}`}
             descripcion="Los bloqueantes impiden el cierre; los informativos se declaran en la observación."
             accion={
-              <Button
-                variante="primario"
-                disabled={cerrado || bloqueantesIncumplidos.length > 0 || checklist.length === 0}
-                onClick={() => setDialogo(true)}
-              >
-                <Lock className="h-3.5 w-3.5" />
-                {cerrado ? "Periodo cerrado" : "Cerrar periodo"}
-              </Button>
+              <div className="flex flex-col items-end gap-1">
+                <Button
+                  variante="primario"
+                  disabled={cerrado || bloqueantesIncumplidos.length > 0 || checklist.length === 0}
+                  onClick={() => setDialogo(true)}
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  {cerrado ? "Periodo cerrado" : "Cerrar periodo"}
+                </Button>
+                {!cerrado && bloqueantesIncumplidos.length > 0 ? (
+                  <span className="text-right text-[11px] text-accent">
+                    No se puede cerrar: <Num>{bloqueantesIncumplidos.length}</Num>{" "}
+                    {bloqueantesIncumplidos.length === 1 ? "bloqueante pendiente" : "bloqueantes pendientes"}
+                  </span>
+                ) : null}
+              </div>
             }
           />
           {checklistQ.isLoading ? (
