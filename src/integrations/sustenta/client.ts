@@ -10,7 +10,8 @@ export const SUSTENTA_SUPABASE_URL =
   "https://gjgezgdnpecyffjpxdep.supabase.co";
 
 export const SUSTENTA_SUPABASE_ANON_KEY =
-  (import.meta.env["VITE_SUSTENTA_SUPABASE_ANON_KEY"] as string | undefined) ?? "";
+  (import.meta.env["VITE_SUSTENTA_SUPABASE_ANON_KEY"] as string | undefined) ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqZ2V6Z2RucGVjeWZmanB4ZGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTcyNDgsImV4cCI6MjA2ODczMzI0OH0.OsAQ8hbjU0x-Ya3JZXwWz117KD961NHksrwnB8FtVTw";
 
 export const sustentaConfigurado = SUSTENTA_SUPABASE_ANON_KEY.length > 0;
 
