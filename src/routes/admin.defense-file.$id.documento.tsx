@@ -450,9 +450,12 @@ function Documento() {
                 ? "No se emplean claves de prorrateo ni distribuciones indirectas: cada hora facturada corresponde a un registro individual con su respectiva evidencia."
                 : ""}
             </p>
+          ) : criterioTexto ? (
+            <p className="doc-parrafo">{criterioTexto}</p>
           ) : (
             <Vacia />
           )}
+
 
           {valorizacion.length === 0 ? (
             <Vacia />
