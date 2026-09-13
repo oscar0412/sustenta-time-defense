@@ -24,6 +24,7 @@ import { Route as HorasRegistroRouteImport } from './routes/horas.registro'
 import { Route as ProyectosIndexRouteImport } from './routes/proyectos.index'
 import { Route as ProyectosAsignacionesRouteImport } from './routes/proyectos.asignaciones'
 import { Route as AdminDefenseFileIndexRouteImport } from './routes/admin.defense-file.index'
+import { Route as AdminDefenseFileIdDocumentoRouteImport } from './routes/admin.defense-file.$id.documento'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,6 +101,12 @@ const AdminDefenseFileIndexRoute = AdminDefenseFileIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminDefenseFileRoute,
 } as any)
+const AdminDefenseFileIdDocumentoRoute =
+  AdminDefenseFileIdDocumentoRouteImport.update({
+    id: '/$id/documento',
+    path: '/$id/documento',
+    getParentRoute: () => AdminDefenseFileRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos/': typeof ProyectosIndexRoute
   '/admin/defense-file/': typeof AdminDefenseFileIndexRoute
+  '/admin/defense-file/$id/documento': typeof AdminDefenseFileIdDocumentoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -133,6 +141,7 @@ export interface FileRoutesByTo {
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos': typeof ProyectosIndexRoute
   '/admin/defense-file': typeof AdminDefenseFileIndexRoute
+  '/admin/defense-file/$id/documento': typeof AdminDefenseFileIdDocumentoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,6 +160,7 @@ export interface FileRoutesById {
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
   '/proyectos/': typeof ProyectosIndexRoute
   '/admin/defense-file/': typeof AdminDefenseFileIndexRoute
+  '/admin/defense-file/$id/documento': typeof AdminDefenseFileIdDocumentoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/proyectos/asignaciones'
     | '/proyectos/'
     | '/admin/defense-file/'
+    | '/admin/defense-file/$id/documento'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/proyectos/asignaciones'
     | '/proyectos'
     | '/admin/defense-file'
+    | '/admin/defense-file/$id/documento'
   id:
     | '__root__'
     | '/'
@@ -203,6 +215,7 @@ export interface FileRouteTypes {
     | '/proyectos/asignaciones'
     | '/proyectos/'
     | '/admin/defense-file/'
+    | '/admin/defense-file/$id/documento'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -329,15 +342,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDefenseFileIndexRouteImport
       parentRoute: typeof AdminDefenseFileRoute
     }
+    '/admin/defense-file/$id/documento': {
+      id: '/admin/defense-file/$id/documento'
+      path: '/$id/documento'
+      fullPath: '/admin/defense-file/$id/documento'
+      preLoaderRoute: typeof AdminDefenseFileIdDocumentoRouteImport
+      parentRoute: typeof AdminDefenseFileRoute
+    }
   }
 }
 
 interface AdminDefenseFileRouteChildren {
   AdminDefenseFileIndexRoute: typeof AdminDefenseFileIndexRoute
+  AdminDefenseFileIdDocumentoRoute: typeof AdminDefenseFileIdDocumentoRoute
 }
 
 const AdminDefenseFileRouteChildren: AdminDefenseFileRouteChildren = {
   AdminDefenseFileIndexRoute: AdminDefenseFileIndexRoute,
+  AdminDefenseFileIdDocumentoRoute: AdminDefenseFileIdDocumentoRoute,
 }
 
 const AdminDefenseFileRouteWithChildren =
