@@ -157,7 +157,6 @@ function Documento() {
 
       <div className="doc-pie-fijo">
         Expediente {nombreReceptor} · {etiquetaMes} · v{txt(version)}
-        <span className="doc-pagina" />
       </div>
 
       <article className="doc-hoja">
@@ -676,7 +675,8 @@ const CSS_DOCUMENTO = `
 
 @media print {
   @page { size: A4; margin: 2.5cm; }
-  .doc-raiz { background: #fff; padding: 0; }
+  html, body { background: #fff; }
+  .doc-raiz { background: #fff; padding: 0; min-height: 0; }
   .doc-hoja { width: auto; margin: 0; padding: 0 0 1.2cm; box-shadow: none; }
   .doc-boton-pdf { display: none !important; }
   .doc-caratula { break-after: page; }
@@ -698,7 +698,6 @@ const CSS_DOCUMENTO = `
     border-top: 1px solid #ccc;
     padding-top: 3px;
   }
-  .doc-pagina::before { content: " · Página " counter(page); }
   .doc-marca-agua {
     display: flex;
     align-items: center;
