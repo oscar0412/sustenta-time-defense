@@ -265,6 +265,24 @@ function Periodos() {
               </div>
             }
           />
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold">Exigir aprobación de jefatura</p>
+              <p className="mt-0.5 max-w-xl text-[11px] text-muted-foreground">
+                Si se activa, el periodo no podrá cerrarse hasta que todas las horas estén aprobadas por la jefatura.
+              </p>
+            </div>
+            <label className="flex shrink-0 cursor-pointer items-center gap-2 text-[12px]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[var(--accent)]"
+                checked={!!periodo?.exige_aprobacion}
+                disabled={!periodo || cerrado || exigirAprobacion.isPending}
+                onChange={(e) => exigirAprobacion.mutate(e.target.checked)}
+              />
+              {periodo?.exige_aprobacion ? "Bloqueante" : "Informativo"}
+            </label>
+          </div>
           {checklistQ.isLoading ? (
             <Vacio mensaje="Evaluando checklist…" />
           ) : checklist.length === 0 ? (
