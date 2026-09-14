@@ -330,12 +330,12 @@ function RegistroHoras() {
       {errores ? <Aviso tono="alerta" titulo="La base de datos respondió">{mensajeDeError(errores)}</Aviso> : null}
 
       <div className="mt-4 grid items-start gap-4 xl:grid-cols-[280px_minmax(520px,1fr)_340px]">
-        <Card>
+        <Card className="order-3 xl:order-none">
           <CardHeader titulo="Mis proyectos del mes" descripcion="Selecciona el compromiso que vas a registrar." />
           {asignaciones.length === 0 ? (
             <Vacio mensaje={`No tienes proyectos asignados en ${format(mes, "MMMM", { locale: es })}.`} />
           ) : (
-            <div className="space-y-2 p-3">
+            <div className="flex gap-2 overflow-x-auto p-3 xl:block xl:space-y-2 xl:overflow-visible">
               {asignaciones.map((a, indice) => {
                 const color = colorProyecto(indice);
                 const activo = a.asignacion_id === asignacion?.asignacion_id;
@@ -351,7 +351,7 @@ function RegistroHoras() {
                       if (fechaSeleccionada && !incluyeFecha(a.asignacion_desde, a.asignacion_hasta, fechaSeleccionada)) setFechaSeleccionada(null);
                     }}
                     className={cn(
-                      "w-full rounded-[6px] border p-3 text-left transition-colors",
+                      "w-[230px] shrink-0 rounded-[6px] border p-3 text-left transition-colors xl:w-full xl:shrink",
                       activo ? cn(color.suave, color.borde) : "border-border bg-surface hover:bg-surface-muted",
                     )}
                   >
@@ -377,7 +377,7 @@ function RegistroHoras() {
           )}
         </Card>
 
-        <Card>
+        <Card className="order-1 xl:order-none">
           <CardHeader
             titulo={format(mes, "MMMM yyyy", { locale: es })}
             descripcion={asignacion ? `${asignacion.proyecto_codigo ?? ""} · ${asignacion.proyecto_nombre ?? ""}` : "Sin proyecto seleccionado"}
@@ -443,7 +443,7 @@ function RegistroHoras() {
           </div>
         </Card>
 
-        <div className="space-y-4">
+        <div className="order-2 space-y-4 xl:order-none">
           <Card>
             <CardHeader
               titulo={diaSeleccionado ? format(diaSeleccionado, "EEEE d 'de' MMMM", { locale: es }) : "Registro del día"}

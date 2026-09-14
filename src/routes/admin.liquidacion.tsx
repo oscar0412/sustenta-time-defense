@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +36,11 @@ interface Agrupado {
   total: number;
 }
 
+function siglaEmpresa(razon: string) {
+  const letras = razon.replace(/[^a-zA-ZÁÉÍÓÚÑáéíóúñ]/g, "").toUpperCase();
+  return letras.slice(0, 5) || "EMPRESA";
+}
+
 function Liquidacion() {
   const { periodo, periodoId, setPeriodoId, periodos } = usePeriodoSeleccionado(true);
 
@@ -49,7 +54,7 @@ function Liquidacion() {
     },
   });
 
-  const empresas = useMemo(() => {
+  const empresasTodas = useMemo(() => {
     const mapa = new Map<string, Agrupado>();
     for (const f of filasQ.data ?? []) {
       const a =
@@ -76,6 +81,19 @@ function Liquidacion() {
     return [...mapa.values()].sort((x, y) => y.total - x.total);
   }, [filasQ.data]);
 
+  const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
+  const idsTodas = useMemo(() => empresasTodas.map((e) => e.empresa_id).join("|"), [empresasTodas]);
+
+  useEffect(() => {
+    setSeleccionadas(idsTodas ? idsTodas.split("|") : []);
+  }, [idsTodas]);
+
+  const empresas = useMemo(
+    () => empresasTodas.filter((e) => seleccionadas.includes(e.empresa_id)),
+    [empresasTodas, seleccionadas],
+  );
+  const todasMarcadas = empresasTodas.length > 0 && seleccionadas.length === empresasTodas.length;
+
   const totales = empresas.reduce(
     (acc, e) => ({
       horas_cobrables: acc.horas_cobrables + e.horas_cobrables,
@@ -96,7 +114,8 @@ function Liquidacion() {
     setDescargando(true);
     try {
       const XLSX = await import("xlsx");
-      const filas = filasQ.data ?? [];
+      const filas = (filasQ.data ?? []).filter((f) => seleccionadas.includes(f.empresa_id));
+      const nombresEmpresas = empresas.map((e) => e.razon_social);
 
       const { data: registros, error: errReg } = await sustenta
         .from("hr_v_registro_detalle")
@@ -104,7 +123,14 @@ function Liquidacion() {
         .eq("periodo_id", periodoId);
       if (errReg) throw errReg;
 
-      const hojaEmpresas = XLSX.utils.json_to_sheet(
+      const encabezado = [
+        [`Liquidación ${etiquetaPeriodo(periodo?.anio, periodo?.mes)}`],
+        [`Empresas incluidas: ${todasMarcadas ? "Todas las empresas" : nombresEmpresas.join(", ")}`],
+        [],
+      ];
+      const hojaEmpresas = XLSX.utils.aoa_to_sheet(encabezado);
+      XLSX.utils.sheet_add_json(
+        hojaEmpresas,
         empresas.map((e) => ({
           Empresa: e.razon_social,
           "Horas cobrables": e.horas_cobrables,
@@ -115,6 +141,7 @@ function Liquidacion() {
           "Costo no cobrable": e.costo_no_cobrable,
           "Total a facturar": e.total,
         })),
+        { origin: -1 },
       );
       XLSX.utils.sheet_add_json(
         hojaEmpresas,
@@ -148,16 +175,18 @@ function Liquidacion() {
       );
 
       const hojaColaboradores = XLSX.utils.json_to_sheet(
-        ((registros ?? []) as RegistroDetalle[]).map((r) => ({
-          Colaborador: r.colaborador ?? "",
-          Proyecto: r.proyecto_nombre ?? r.proyecto_codigo ?? "",
-          Empresa: r.empresa ?? "",
-          Fecha: r.fecha,
-          Horas: Number(r.horas ?? 0),
-          Cobrable: r.cobrable ? "Sí" : "No",
-          "Costo por hora": r.costo_hora == null ? null : Number(r.costo_hora),
-          Costo: r.costo == null ? null : Number(r.costo),
-        })),
+        ((registros ?? []) as RegistroDetalle[])
+          .filter((r) => todasMarcadas || nombresEmpresas.includes(r.empresa ?? ""))
+          .map((r) => ({
+            Colaborador: r.colaborador ?? "",
+            Proyecto: r.proyecto_nombre ?? r.proyecto_codigo ?? "",
+            Empresa: r.empresa ?? "",
+            Fecha: r.fecha,
+            Horas: Number(r.horas ?? 0),
+            Cobrable: r.cobrable ? "Sí" : "No",
+            "Costo por hora": r.costo_hora == null ? null : Number(r.costo_hora),
+            Costo: r.costo == null ? null : Number(r.costo),
+          })),
       );
 
       const libro = XLSX.utils.book_new();
@@ -166,7 +195,12 @@ function Liquidacion() {
       XLSX.utils.book_append_sheet(libro, hojaColaboradores, "Detalle por colaborador");
 
       const codigo = `${periodo?.anio ?? ""}-${String(periodo?.mes ?? "").padStart(2, "0")}`;
-      XLSX.writeFile(libro, `Liquidacion_${codigo}.xlsx`);
+      const sufijo = todasMarcadas
+        ? ""
+        : empresas.length === 1
+          ? `_${siglaEmpresa(empresas[0]!.razon_social)}`
+          : `_${empresas.length}-empresas`;
+      XLSX.writeFile(libro, `Liquidacion_${codigo}${sufijo}.xlsx`);
       toast.success("Liquidación descargada");
     } catch (e) {
       toast.error(mensajeDeError(e));
@@ -183,15 +217,20 @@ function Liquidacion() {
       />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <SelectorPeriodo periodos={periodos} valor={periodoId} onChange={setPeriodoId} />
-        <Button
-          variante="primario"
-          disabled={empresas.length === 0}
-          cargando={descargando}
-          onClick={() => void descargarExcel()}
-        >
-          <Download className="h-3.5 w-3.5" />
-          Descargar liquidación
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {empresas.length === 0 && empresasTodas.length > 0 ? (
+            <span className="text-[12px] text-muted-foreground">Selecciona al menos una empresa</span>
+          ) : null}
+          <Button
+            variante="primario"
+            disabled={empresas.length === 0}
+            cargando={descargando}
+            onClick={() => void descargarExcel()}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Descargar liquidación
+          </Button>
+        </div>
       </div>
 
       {filasQ.error ? (
@@ -200,15 +239,49 @@ function Liquidacion() {
         </div>
       ) : null}
 
+      {empresasTodas.length > 0 ? (
+        <Card className="mb-4">
+          <CardHeader titulo="Empresas incluidas" descripcion="Filtra los indicadores, la tabla y la descarga." />
+          <div className="flex flex-wrap gap-x-5 gap-y-2 p-4 text-[13px]">
+            <label className="flex items-center gap-2 font-semibold">
+              <input
+                type="checkbox"
+                checked={todasMarcadas}
+                onChange={(e) => setSeleccionadas(e.target.checked ? empresasTodas.map((x) => x.empresa_id) : [])}
+              />
+              Todas las empresas
+            </label>
+            {empresasTodas.map((e) => (
+              <label key={e.empresa_id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={seleccionadas.includes(e.empresa_id)}
+                  onChange={(ev) =>
+                    setSeleccionadas((prev) =>
+                      ev.target.checked ? [...prev, e.empresa_id] : prev.filter((id) => id !== e.empresa_id),
+                    )
+                  }
+                />
+                {e.razon_social}
+              </label>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+
       {periodos.length === 0 ? (
         <Card>
           <Vacio mensaje="No hay periodos cerrados: la liquidación se genera después del cierre." />
         </Card>
       ) : filasQ.isLoading ? (
         <Card><Vacio mensaje="Cargando liquidación…" /></Card>
-      ) : empresas.length === 0 ? (
+      ) : empresasTodas.length === 0 ? (
         <Card>
           <Vacio mensaje={`La liquidación de ${etiquetaPeriodo(periodo?.anio, periodo?.mes)} no está calculada. Los costos pendientes no se muestran como importes en cero.`} />
+        </Card>
+      ) : empresas.length === 0 ? (
+        <Card>
+          <Vacio mensaje="Selecciona al menos una empresa para ver la liquidación." />
         </Card>
       ) : (
         <>
@@ -225,7 +298,7 @@ function Liquidacion() {
               descripcion={etiquetaPeriodo(periodo?.anio, periodo?.mes)}
             />
             <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
+              <table className="w-full min-w-[860px] text-[13px]">
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="px-4 py-2 label-xs">Empresa</th>

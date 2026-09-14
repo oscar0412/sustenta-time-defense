@@ -339,7 +339,7 @@ function Costos() {
                     Se aplicaron {validas.length} costos al periodo y la base recalculó el costo por hora.
                   </Aviso>
                   <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-[13px]">
+                    <table className="w-full min-w-[860px] text-[13px]">
                       <thead>
                         <tr className="border-b border-border text-left">
                           <th className="px-2 py-2 label-xs">Colaborador</th>
@@ -393,7 +393,7 @@ function Costos() {
                     </p>
                   ) : null}
                   <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-[13px]">
+                    <table className="w-full min-w-[860px] text-[13px]">
                       <thead>
                         <tr className="border-b border-border text-left">
                           <th className="px-2 py-2 label-xs">Documento</th>
@@ -492,7 +492,7 @@ function Costos() {
           <Vacio mensaje={`No hay datos de capacidad ni costos para ${etiquetaPeriodo(periodo?.anio, periodo?.mes)}.`} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full min-w-[860px] text-[13px]">
               <thead>
                 <tr className="border-b border-border text-left">
                   <th className="px-4 py-2 label-xs">Colaborador</th>
