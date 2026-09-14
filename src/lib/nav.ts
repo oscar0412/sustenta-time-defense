@@ -39,10 +39,16 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "horas",
     label: "Horas",
-    roles: ["colaborador", "jefatura"],
+    roles: ["colaborador", "jefatura", "administracion"],
     items: [
       { label: "Registro de horas", to: "/horas/registro", icon: Clock, roles: ["colaborador", "jefatura"] },
       { label: "Mi capacidad", to: "/horas/capacidad", icon: CalendarRange, roles: ["colaborador", "jefatura"] },
+      {
+        label: "Aprobaciones",
+        to: "/horas/aprobaciones",
+        icon: ClipboardCheck,
+        roles: ["jefatura", "administracion"],
+      },
     ],
   },
   {
