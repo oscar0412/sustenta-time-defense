@@ -171,6 +171,21 @@ function RegistroHoras() {
     },
   });
 
+  const aprobacionesQ = useQuery({
+    queryKey: ["mis-aprobaciones", colaboradorId, periodoId],
+    enabled: habilitado,
+    queryFn: async () => {
+      if (!colaboradorId || !periodoId) return [];
+      const { data, error } = await sustenta
+        .from("hr_v_aprobacion")
+        .select("*")
+        .eq("colaborador_id", colaboradorId)
+        .eq("periodo_id", periodoId);
+      if (error) throw error;
+      return (data ?? []) as AprobacionFila[];
+    },
+  });
+
   const asignaciones = asignacionesQ.data ?? [];
   const registros = registrosQ.data ?? [];
   const feriados = feriadosQ.data ?? [];
