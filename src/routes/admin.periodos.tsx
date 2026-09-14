@@ -154,6 +154,23 @@ function Periodos() {
     },
   });
 
+  const exigirAprobacion = useMutation({
+    mutationFn: async (valor: boolean) => {
+      const { error: err } = await sustenta
+        .from("hr_periodo")
+        .update({ exige_aprobacion: valor })
+        .eq("id", periodoId);
+      if (err) throw err;
+      return valor;
+    },
+    onSuccess: async (valor) => {
+      toast.success(valor ? "El cierre exigirá aprobación de jefatura." : "La aprobación pasa a ser informativa.");
+      await qc.invalidateQueries({ queryKey: ["periodos"] });
+      await qc.invalidateQueries({ queryKey: ["checklist"] });
+    },
+    onError: (e) => toast.error(mensajeDeError(e)),
+  });
+
   return (
     <AppShell>
       <PageHeader titulo="Periodos" descripcion="Estado de cada periodo y checklist previo al cierre." />
