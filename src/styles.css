@@ -52,6 +52,19 @@
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
 
+  --color-project-1: var(--project-1);
+  --color-project-1-soft: var(--project-1-soft);
+  --color-project-2: var(--project-2);
+  --color-project-2-soft: var(--project-2-soft);
+  --color-project-3: var(--project-3);
+  --color-project-3-soft: var(--project-3-soft);
+  --color-project-4: var(--project-4);
+  --color-project-4-soft: var(--project-4-soft);
+  --color-project-5: var(--project-5);
+  --color-project-5-soft: var(--project-5-soft);
+  --color-project-6: var(--project-6);
+  --color-project-6-soft: var(--project-6-soft);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-elevated: var(--sidebar-elevated);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -79,6 +92,19 @@
   --warning-soft: #fbf0dc;
   --info: #31506e;
   --info-soft: #e8eef4;
+
+  --project-1: #356a8a;
+  --project-1-soft: #e6f0f5;
+  --project-2: #4d7463;
+  --project-2-soft: #e8f1ec;
+  --project-3: #78669a;
+  --project-3-soft: #eeeaf5;
+  --project-4: #8a6b35;
+  --project-4-soft: #f4eddf;
+  --project-5: #3f7478;
+  --project-5-soft: #e4f0f0;
+  --project-6: #76685a;
+  --project-6-soft: #f0ece7;
 
   --sidebar: #171a1f;
   --sidebar-elevated: #21252c;
