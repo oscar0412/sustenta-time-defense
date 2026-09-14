@@ -199,8 +199,8 @@ function Asignaciones() {
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-border">
-                {["Colaborador", "Rol", "Dedicación", "Vigencia", "Cobrabilidad", "Capacidad usada", ""].map((h) => (
-                  <th key={h} className="label-xs px-4 py-2">
+                {["Colaborador", "Rol", "Dedicación", "Vigencia", "Cobrabilidad", "Capacidad usada", "Acciones"].map((h, i) => (
+                  <th key={`${h}-${i}`} className="label-xs px-4 py-2">
                     {h}
                   </th>
                 ))}
