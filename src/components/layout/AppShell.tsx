@@ -308,10 +308,30 @@ export function PageHeader({
 export function AppShell({ children }: { children: ReactNode }) {
   const { configurado, session, autenticando } = useSesion();
   const navigate = useNavigate();
+  const [menuMovil, setMenuMovil] = useState(false);
+  const [colapsada, setColapsada] = useState(false);
 
   useEffect(() => {
     if (!autenticando && !session) navigate({ to: "/auth", replace: true });
   }, [autenticando, session, navigate]);
+
+  useEffect(() => {
+    setColapsada(localStorage.getItem("sustenta:sidebar-colapsada") === "1");
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = menuMovil ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuMovil]);
+
+  function alternarColapso() {
+    setColapsada((v) => {
+      localStorage.setItem("sustenta:sidebar-colapsada", v ? "0" : "1");
+      return !v;
+    });
+  }
 
   if (!session) {
     return (
@@ -323,16 +343,32 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      <Sidebar />
+      <div className="hidden lg:flex">
+        <Sidebar colapsada={colapsada} onColapsar={alternarColapso} />
+      </div>
+
+      {menuMovil ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMenuMovil(false)}
+            aria-hidden
+          />
+          <div className="absolute inset-y-0 left-0 w-64 shadow-xl">
+            <Sidebar movil onNavegar={() => setMenuMovil(false)} onCerrar={() => setMenuMovil(false)} />
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
+        <Topbar onAbrirMenu={() => setMenuMovil(true)} />
         {!configurado ? (
           <div className="flex items-center gap-2 border-b border-warning/20 bg-warning-soft px-5 py-2 text-[12px] text-warning">
             <AlertCircle className="h-4 w-4" />
             Falta la clave pública de la base de datos: la interfaz está lista pero no puede leer datos.
           </div>
         ) : null}
-        <main className="flex-1 overflow-y-auto px-6 py-6">{children}</main>
+        <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">{children}</main>
       </div>
     </div>
   );
