@@ -274,11 +274,10 @@ function Asignaciones() {
                 variante="primario"
                 onClick={() => {
                   const a = asignaciones.find((x) => x.id === errorBorrado.id) ?? null;
-                  setEditando(a);
-                  setFechaFin(new Date().toISOString().slice(0, 10));
+                  abrirEditor(a, new Date().toISOString().slice(0, 10));
                 }}
               >
-                Cerrar la asignación anticipadamente
+                Cerrar anticipadamente
               </Button>
             </div>
           </Aviso>
