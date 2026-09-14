@@ -188,16 +188,17 @@ function Periodos() {
                 const r = resumen.get(p.id);
                 const activo = p.id === periodoId;
                 return (
-                  <li key={p.id}>
+                  <li
+                    key={p.id}
+                    className={cn(
+                      "border-b border-l-2 border-border last:border-b-0",
+                      (p.estado ?? "").toLowerCase() === "abierto" ? "border-l-success" : "border-l-transparent",
+                      activo && "bg-surface-muted",
+                    )}
+                  >
                     <button
                       onClick={() => setSeleccionado(p.id)}
-                      className={cn(
-                        "flex w-full items-center justify-between border-b border-l-2 border-border px-4 py-3 text-left last:border-b-0 hover:bg-surface-muted",
-                        (p.estado ?? "").toLowerCase() === "abierto"
-                          ? "border-l-success"
-                          : "border-l-transparent",
-                        activo && "bg-surface-muted",
-                      )}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-surface-muted"
                     >
                       <div>
                         <p className="text-[13px] font-semibold">
@@ -219,6 +220,21 @@ function Periodos() {
                         {p.estado}
                       </Badge>
                     </button>
+                    {(p.estado ?? "").toLowerCase() === "cerrado" ? (
+                      <div className="px-4 pb-3">
+                        <Button
+                          variante="secundario"
+                          onClick={() => {
+                            setError(null);
+                            setMotivo("");
+                            setReabriendo(p);
+                          }}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Reabrir
+                        </Button>
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
