@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   Gauge,
   Building2,
+  UserCog,
+  BookMarked,
   type LucideIcon,
 } from "lucide-react";
 
@@ -62,6 +64,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Administración",
     roles: ["administracion", "finanzas", "tributaria"],
     items: [
+      { label: "Colaboradores", to: "/admin/colaboradores", icon: UserCog, roles: ["administracion"] },
+      { label: "Catálogos", to: "/admin/catalogos", icon: BookMarked, roles: ["administracion"] },
       { label: "Jornada y feriados", to: "/admin/jornada", icon: CalendarDays, roles: ["administracion"] },
       {
         label: "Incidencias del personal",
