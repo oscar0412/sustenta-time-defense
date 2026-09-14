@@ -513,6 +513,18 @@ function RegistroHoras() {
                     ))}
                   </select>
                 </div>
+                {normalizarEstado(aprobacionSeleccionada?.estado) === "observado" ? (
+                  <Aviso tono="acento" titulo="Tu jefatura observó estas horas">
+                    {aprobacionSeleccionada?.comentario ?? "Sin comentario registrado."}
+                  </Aviso>
+                ) : null}
+                {proyectoBloqueado ? (
+                  <Aviso tono="alerta" titulo={`Horas ${ETIQUETA_ESTADO[normalizarEstado(aprobacionSeleccionada?.estado)].toLowerCase()} a la jefatura`}>
+                    Un proyecto enviado o aprobado no admite cambios ni horas nuevas. Espera la respuesta de tu
+                    jefatura para poder corregir.
+                  </Aviso>
+                ) : (
+                  <>
                 <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-3">
                   <div>
                     <Etiqueta>Actividad</Etiqueta>
@@ -544,6 +556,8 @@ function RegistroHoras() {
                 <Button variante="primario" className="w-full" cargando={guardar.isPending} disabled={!descripcionValida || !horas || !actividadId || !asignacion} onClick={() => guardar.mutate()}>
                   Guardar registro
                 </Button>
+                  </>
+                )}
               </div>
             )}
           </Card>
