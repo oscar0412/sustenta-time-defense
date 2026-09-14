@@ -80,6 +80,7 @@ function RegistroHoras() {
   const [descripcion, setDescripcion] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
   const [errorBD, setErrorBD] = useState<string | null>(null);
+  const [dialogoEnvio, setDialogoEnvio] = useState(false);
 
   const asignacionesQ = useQuery({
     queryKey: ["mis-asignaciones-periodo", colaboradorId, periodoId],
