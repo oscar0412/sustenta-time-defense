@@ -90,6 +90,91 @@ function Liquidacion() {
 
   const aCostoPuro = empresas.filter((e) => e.margen_pct === 0);
 
+  const [descargando, setDescargando] = useState(false);
+
+  async function descargarExcel() {
+    setDescargando(true);
+    try {
+      const XLSX = await import("xlsx");
+      const filas = filasQ.data ?? [];
+
+      const { data: registros, error: errReg } = await sustenta
+        .from("hr_v_registro_detalle")
+        .select("*")
+        .eq("periodo_id", periodoId);
+      if (errReg) throw errReg;
+
+      const hojaEmpresas = XLSX.utils.json_to_sheet(
+        empresas.map((e) => ({
+          Empresa: e.razon_social,
+          "Horas cobrables": e.horas_cobrables,
+          "Horas no cobrables": e.horas_no_cobrables,
+          "Costo cobrable": e.costo_cobrable,
+          "Margen %": e.margen_pct,
+          Margen: e.margen,
+          "Costo no cobrable": e.costo_no_cobrable,
+          "Total a facturar": e.total,
+        })),
+      );
+      XLSX.utils.sheet_add_json(
+        hojaEmpresas,
+        [
+          {
+            Empresa: "TOTALES",
+            "Horas cobrables": totales.horas_cobrables,
+            "Horas no cobrables": totales.horas_no_cobrables,
+            "Costo cobrable": totales.costo_cobrable,
+            "Margen %": null,
+            Margen: totales.margen,
+            "Costo no cobrable": totales.costo_no_cobrable,
+            "Total a facturar": totales.total,
+          },
+        ],
+        { skipHeader: true, origin: -1 },
+      );
+
+      const hojaProyectos = XLSX.utils.json_to_sheet(
+        filas.map((f) => ({
+          Empresa: f.razon_social ?? "",
+          Proyecto: f.proyecto ?? "",
+          "Horas cobrables": Number(f.horas_cobrables ?? 0),
+          "Horas no cobrables": Number(f.horas_no_cobrables ?? 0),
+          "Costo cobrable": Number(f.costo_cobrable ?? 0),
+          "Margen %": Number(f.margen_pct ?? 0),
+          Margen: Number(f.margen ?? 0),
+          "Costo no cobrable": Number(f.costo_no_cobrable ?? 0),
+          "Total a facturar": Number(f.total_facturar ?? 0),
+        })),
+      );
+
+      const hojaColaboradores = XLSX.utils.json_to_sheet(
+        ((registros ?? []) as RegistroDetalle[]).map((r) => ({
+          Colaborador: r.colaborador ?? "",
+          Proyecto: r.proyecto_nombre ?? r.proyecto_codigo ?? "",
+          Empresa: r.empresa ?? "",
+          Fecha: r.fecha,
+          Horas: Number(r.horas ?? 0),
+          Cobrable: r.cobrable ? "Sí" : "No",
+          "Costo por hora": r.costo_hora == null ? null : Number(r.costo_hora),
+          Costo: r.costo == null ? null : Number(r.costo),
+        })),
+      );
+
+      const libro = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(libro, hojaEmpresas, "Resumen por empresa");
+      XLSX.utils.book_append_sheet(libro, hojaProyectos, "Detalle por proyecto");
+      XLSX.utils.book_append_sheet(libro, hojaColaboradores, "Detalle por colaborador");
+
+      const codigo = `${periodo?.anio ?? ""}-${String(periodo?.mes ?? "").padStart(2, "0")}`;
+      XLSX.writeFile(libro, `Liquidacion_${codigo}.xlsx`);
+      toast.success("Liquidación descargada");
+    } catch (e) {
+      toast.error(mensajeDeError(e));
+    } finally {
+      setDescargando(false);
+    }
+  }
+
   return (
     <AppShell>
       <PageHeader
