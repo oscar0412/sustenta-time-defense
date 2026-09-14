@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronDown, ChevronRight, Clock3, MessageSquareWarning, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -233,8 +233,8 @@ function Aprobaciones() {
                   const sinEvidencia = Number(u.registros_sin_evidencia ?? 0);
                   const abierta = expandida === u.id;
                   return (
-                    <>
-                      <tr key={u.id} className="border-b border-border align-top">
+                    <Fragment key={u.id}>
+                      <tr className="border-b border-border align-top">
                         <td className="px-3 py-2">
                           {estado === "enviado" ? (
                             <input
@@ -314,7 +314,7 @@ function Aprobaciones() {
                         </td>
                       </tr>
                       {abierta ? (
-                        <tr key={`${u.id}-detalle`} className="border-b border-border bg-surface-muted/40">
+                        <tr className="border-b border-border bg-surface-muted/40">
                           <td colSpan={11} className="px-3 py-3">
                             <DetalleUnidad
                               colaboradorId={u.colaborador_id}
@@ -324,7 +324,7 @@ function Aprobaciones() {
                           </td>
                         </tr>
                       ) : null}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
