@@ -36,6 +36,11 @@ interface Agrupado {
   total: number;
 }
 
+function siglaEmpresa(razon: string) {
+  const letras = razon.replace(/[^a-zA-ZÁÉÍÓÚÑáéíóúñ]/g, "").toUpperCase();
+  return letras.slice(0, 5) || "EMPRESA";
+}
+
 function Liquidacion() {
   const { periodo, periodoId, setPeriodoId, periodos } = usePeriodoSeleccionado(true);
 
