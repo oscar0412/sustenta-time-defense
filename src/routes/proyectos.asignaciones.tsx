@@ -243,10 +243,7 @@ function Asignaciones() {
                         <Button
                           variante="fantasma"
                           aria-label="Editar"
-                          onClick={() => {
-                            setEditando(a);
-                            setFechaFin(a.fecha_fin ?? "");
-                          }}
+                          onClick={() => abrirEditor(a)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
