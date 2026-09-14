@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Download } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
-import { Aviso, Badge, Card, CardHeader, Num, Vacio } from "@/components/ui-kit";
+import { Aviso, Badge, Button, Card, CardHeader, Num, Vacio } from "@/components/ui-kit";
 import { KPI, KPIGrid } from "@/components/metrics";
 import { SelectorPeriodo, usePeriodoSeleccionado } from "@/components/PeriodoSelector";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
-import type { LiquidacionFila } from "@/integrations/sustenta/vistas";
+import type { LiquidacionFila, RegistroDetalle } from "@/integrations/sustenta/vistas";
 import { etiquetaPeriodo, n, pct, soles } from "@/lib/formato";
 
 export const Route = createFileRoute("/admin/liquidacion")({
