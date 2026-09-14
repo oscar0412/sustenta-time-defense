@@ -2,6 +2,7 @@ import type { Rol } from "@/integrations/sustenta/types";
 import {
   Clock,
   CalendarRange,
+  ClipboardCheck,
   FolderKanban,
   Users,
   CalendarDays,
