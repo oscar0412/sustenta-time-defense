@@ -298,17 +298,59 @@ function Asignaciones() {
             />
             <div className="space-y-4 p-4">
               <div>
-                <Etiqueta>Fecha de fin de la asignación</Etiqueta>
+                <Etiqueta>Rol en el proyecto</Etiqueta>
                 <input
-                  type="date"
-                  className="field num mt-1"
-                  value={fechaFin}
-                  onChange={(e) => setFechaFin(e.target.value)}
+                  className="field mt-1 w-full"
+                  value={form.rol_proyecto}
+                  onChange={(e) => setForm({ ...form, rol_proyecto: e.target.value })}
                 />
-                <p className="mt-1 text-[12px] text-muted-foreground">
-                  Cerrar la asignación conserva las horas ya registradas y evita nuevos registros.
-                </p>
               </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Etiqueta>Dedicación (%)</Etiqueta>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    className="field num mt-1 w-full"
+                    value={form.dedicacion_pct}
+                    onChange={(e) => setForm({ ...form, dedicacion_pct: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Etiqueta>Cobrabilidad</Etiqueta>
+                  <select
+                    className="field mt-1 w-full"
+                    value={form.cobrable ? "si" : "no"}
+                    onChange={(e) => setForm({ ...form, cobrable: e.target.value === "si" })}
+                  >
+                    <option value="si">Cobrable</option>
+                    <option value="no">No cobrable</option>
+                  </select>
+                </div>
+                <div>
+                  <Etiqueta>Fecha de inicio</Etiqueta>
+                  <input
+                    type="date"
+                    className="field num mt-1 w-full"
+                    value={form.fecha_inicio}
+                    onChange={(e) => setForm({ ...form, fecha_inicio: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Etiqueta>Fecha de fin</Etiqueta>
+                  <input
+                    type="date"
+                    className="field num mt-1 w-full"
+                    value={form.fecha_fin}
+                    onChange={(e) => setForm({ ...form, fecha_fin: e.target.value })}
+                  />
+                </div>
+              </div>
+              <p className="text-[12px] text-muted-foreground">
+                Cerrar la asignación conserva las horas ya registradas y evita nuevos registros.
+              </p>
+              {errorEdicion ? <Aviso tono="alerta" titulo="La base de datos respondió">{errorEdicion}</Aviso> : null}
               <div className="flex justify-end gap-2">
                 <Button variante="secundario" onClick={() => setEditando(null)}>
                   Cancelar
@@ -316,7 +358,7 @@ function Asignaciones() {
                 <Button
                   variante="primario"
                   cargando={actualizar.isPending}
-                  onClick={() => actualizar.mutate({ id: editando.id, fecha_fin: fechaFin || null })}
+                  onClick={() => actualizar.mutate(editando.id)}
                 >
                   Guardar
                 </Button>
