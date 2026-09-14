@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { eachDayOfInterval, endOfMonth, format, isAfter, isBefore, parseISO, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
@@ -41,11 +41,15 @@ const PALETA = [
 const DIAS = ["L", "M", "M", "J", "V", "S", "D"];
 const ARCHIVOS_ACEPTADOS = ".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.pptx";
 
+function colorProyecto(indice: number) {
+  return PALETA[indice % PALETA.length] ?? PALETA[0];
+}
+
 function iso(d: Date) {
   return format(d, "yyyy-MM-dd");
 }
 
-function incluyeFecha(inicio: string | null, fin: string | null, fecha: string) {
+function incluyeFecha(inicio: string | null | undefined, fin: string | null | undefined, fecha: string) {
   return (!inicio || fecha >= inicio) && (!fin || fecha <= fin);
 }
 
@@ -171,7 +175,7 @@ function RegistroHoras() {
   const feriados = feriadosQ.data ?? [];
   const incidencias = incidenciasQ.data ?? [];
   const asignacion = asignaciones.find((a) => a.asignacion_id === asignacionId) ?? asignaciones[0] ?? null;
-  const colorSeleccionado = PALETA[Math.max(0, asignaciones.indexOf(asignacion ?? asignaciones[0])) % PALETA.length];
+  const colorSeleccionado = colorProyecto(Math.max(0, asignacion ? asignaciones.indexOf(asignacion) : 0));
   const cap = capacidadQ.data;
   const dias = useMemo(
     () => (mes ? eachDayOfInterval({ start: startOfMonth(mes), end: endOfMonth(mes) }) : []),
@@ -333,7 +337,7 @@ function RegistroHoras() {
           ) : (
             <div className="space-y-2 p-3">
               {asignaciones.map((a, indice) => {
-                const color = PALETA[indice % PALETA.length];
+                const color = colorProyecto(indice);
                 const activo = a.asignacion_id === asignacion?.asignacion_id;
                 const esperado = Number(a.horas_esperadas ?? 0);
                 const registrado = Number(a.horas_registradas ?? 0);
@@ -530,7 +534,7 @@ function RegistroHoras() {
             <h3 className="text-[13px] font-semibold">Compromisos vigentes</h3>
             <div className="mt-3 space-y-2">
               {asignaciones.map((a, indice) => {
-                const color = PALETA[indice % PALETA.length];
+                const color = colorProyecto(indice);
                 return (
                   <div key={a.asignacion_id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border pb-2 last:border-0">
                     <span className={cn("h-2.5 w-2.5 rounded-full", color.punto)} />
@@ -565,7 +569,7 @@ function RegistroHoras() {
   );
 }
 
-function ResumenCifra({ icono, etiqueta, valor, nota }: { icono: React.ReactNode; etiqueta: string; valor: string; nota?: string }) {
+function ResumenCifra({ icono, etiqueta, valor, nota }: { icono: ReactNode; etiqueta: string; valor: string; nota?: string }) {
   return (
     <div className="min-h-24 bg-surface p-3">
       <span className="text-muted-foreground">{icono}</span>
