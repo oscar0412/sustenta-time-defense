@@ -53,7 +53,7 @@ function incluyeFecha(inicio: string | null | undefined, fin: string | null | un
   return (!inicio || fecha >= inicio) && (!fin || fecha <= fin);
 }
 
-function abreviarIncidencia(tipo: string | null) {
+function abreviarIncidencia(tipo: string | null | undefined) {
   const limpio = (tipo ?? "INC").trim().toUpperCase();
   if (limpio.startsWith("VAC")) return "VAC";
   if (limpio.startsWith("PERM")) return "PERM";
