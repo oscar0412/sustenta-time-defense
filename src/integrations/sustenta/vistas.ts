@@ -53,8 +53,12 @@ export interface AsignacionDetalle {
   horas_registradas: number | null;
 }
 
-export interface AsignacionPeriodo extends AsignacionDetalle {
+export interface AsignacionPeriodo extends Omit<AsignacionDetalle, "id" | "fecha_inicio" | "fecha_fin"> {
   periodo_id: string;
+  /** La vista mensual nombra la asignación y su vigencia con otras columnas. */
+  asignacion_id: string;
+  asignacion_desde: string | null;
+  asignacion_hasta: string | null;
   dias_habiles_cubiertos: number | null;
   horas_esperadas: number | null;
 }

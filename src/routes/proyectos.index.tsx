@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, X } from "lucide-react";
+import { Pencil, Plus, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
@@ -217,7 +217,7 @@ function ProyectosPantalla() {
                   <th className="px-4 py-2 label-xs text-right">Asignados</th>
                   <th className="px-4 py-2 label-xs text-right">Horas del periodo</th>
                   <th className="px-4 py-2 label-xs">Estado</th>
-                  {puedeEditar ? <th className="px-4 py-2 label-xs text-right">Acción</th> : null}
+                  <th className="px-4 py-2 label-xs text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,7 +250,13 @@ function ProyectosPantalla() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-right">
-                        <Num className="tabular-nums">{r ? n(r.personas.size, 0) : "—"}</Num>
+                        <Link
+                          to="/proyectos/asignaciones"
+                          search={{ proyecto: p.id }}
+                          className="underline underline-offset-2"
+                        >
+                          <Num className="tabular-nums">{r ? n(r.personas.size, 0) : "0"}</Num>
+                        </Link>
                       </td>
                       <td className="px-4 py-2 text-right">
                         {r ? (
@@ -266,14 +272,22 @@ function ProyectosPantalla() {
                           {p.estado ?? "—"}
                         </Badge>
                       </td>
-                      {puedeEditar ? (
-                        <td className="px-4 py-2 text-right">
-                          <Button variante="secundario" onClick={() => abrir(p)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                            Editar
-                          </Button>
-                        </td>
-                      ) : null}
+                      <td className="px-4 py-2">
+                        <div className="flex justify-end gap-2">
+                          <Link to="/proyectos/asignaciones" search={{ proyecto: p.id }}>
+                            <Button variante="secundario">
+                              <Users className="h-3.5 w-3.5" />
+                              Asignar colaboradores
+                            </Button>
+                          </Link>
+                          {puedeEditar ? (
+                            <Button variante="secundario" onClick={() => abrir(p)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                              Editar
+                            </Button>
+                          ) : null}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
