@@ -258,13 +258,24 @@ function RegistroHoras() {
       const registro = data as RegistroHora;
 
       if (archivo) {
-        const ruta = `${colaboradorId}/${iso(dia)}/${Date.now()}-${archivo.name}`;
-        const up = await sustenta.storage.from("sustentos").upload(ruta, archivo);
+        const f = dia;
+        const ruta = `horas/${f.getFullYear()}/${String(f.getMonth() + 1).padStart(2, "0")}/${registro.id}-${archivo.name}`;
+        const up = await sustenta.storage
+          .from("sustentos")
+          .upload(ruta, archivo, { upsert: true, contentType: archivo.type || "application/octet-stream" });
         if (up.error) throw up.error;
+
+        const buffer = await archivo.arrayBuffer();
+        const digest = await crypto.subtle.digest("SHA-256", buffer);
+        const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
         const { error: errSustento } = await sustenta.from("hr_sustento").insert({
-          registro_hora_id: registro.id,
-          archivo: ruta,
-          nombre: archivo.name,
+          registro_id: registro.id,
+          nombre_archivo: archivo.name,
+          tipo_documento: archivo.type || archivo.name.split(".").pop() || "archivo",
+          hash_sha256: hash,
+          tamano_bytes: archivo.size,
+          storage_path: ruta,
         });
         if (errSustento) throw errSustento;
       }
