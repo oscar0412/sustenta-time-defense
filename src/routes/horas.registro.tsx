@@ -1,124 +1,158 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  addMonths,
-  eachDayOfInterval,
-  endOfMonth,
-  format,
-  isAfter,
-  isBefore,
-  isSameDay,
-  parseISO,
-  startOfMonth,
-  subMonths,
-} from "date-fns";
+import { eachDayOfInterval, endOfMonth, format, isAfter, isBefore, parseISO, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Info, Paperclip, Upload } from "lucide-react";
+import { AlertTriangle, CalendarDays, Check, Circle, Clock3, Paperclip, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Aviso, Badge, Button, Card, CardHeader, Etiqueta, Num, Vacio } from "@/components/ui-kit";
 import { useSesion } from "@/context/session";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
-import type {
-  Actividad,
-  Asignacion,
-  EmpresaVinculada,
-  Feriado,
-  Incidencia,
-  RegistroHora,
-} from "@/integrations/sustenta/types";
-import { nombreEmpresa } from "@/integrations/sustenta/types";
-import type { AsignacionDetalle } from "@/integrations/sustenta/vistas";
+import type { Actividad, Feriado, Incidencia, RegistroHora } from "@/integrations/sustenta/types";
+import type { AsignacionPeriodo, CapacidadFila, RegistroDetalle } from "@/integrations/sustenta/vistas";
+import { fechaCorta, horasMinutos, n, pct, rangoMes } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/horas/registro")({
   head: () => ({
     meta: [
       { title: "Registro de horas — Sustenta" },
-      {
-        name: "description",
-        content:
-          "Registro diario de horas por proyecto con evidencia y clasificación automática de cobrabilidad.",
-      },
+      { name: "description", content: "Tablero personal de compromisos, calendario y registro diario de horas." },
       { property: "og:title", content: "Registro de horas — Sustenta" },
-      {
-        property: "og:description",
-        content: "Registro diario de horas por proyecto con evidencia y clasificación automática.",
-      },
+      { property: "og:description", content: "Compromisos mensuales y registro diario de horas con evidencia." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: RegistroHoras,
 });
 
-const HORAS_JORNADA = 8;
+const PALETA = [
+  { punto: "bg-project-1", suave: "bg-project-1-soft", texto: "text-project-1", borde: "border-project-1" },
+  { punto: "bg-project-2", suave: "bg-project-2-soft", texto: "text-project-2", borde: "border-project-2" },
+  { punto: "bg-project-3", suave: "bg-project-3-soft", texto: "text-project-3", borde: "border-project-3" },
+  { punto: "bg-project-4", suave: "bg-project-4-soft", texto: "text-project-4", borde: "border-project-4" },
+  { punto: "bg-project-5", suave: "bg-project-5-soft", texto: "text-project-5", borde: "border-project-5" },
+  { punto: "bg-project-6", suave: "bg-project-6-soft", texto: "text-project-6", borde: "border-project-6" },
+] as const;
+
+const DIAS = ["L", "M", "M", "J", "V", "S", "D"];
+const ARCHIVOS_ACEPTADOS = ".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.pptx";
 
 function iso(d: Date) {
   return format(d, "yyyy-MM-dd");
 }
 
-function dedicacionDe(a: Asignacion): number | null {
-  const v = a.dedicacion_pct ?? a.dedicacion;
-  if (v == null) return null;
-  return v <= 1 ? Math.round(v * 100) : Math.round(v);
+function incluyeFecha(inicio: string | null, fin: string | null, fecha: string) {
+  return (!inicio || fecha >= inicio) && (!fin || fecha <= fin);
+}
+
+function abreviarIncidencia(tipo: string | null) {
+  const limpio = (tipo ?? "INC").trim().toUpperCase();
+  if (limpio.startsWith("VAC")) return "VAC";
+  if (limpio.startsWith("PERM")) return "PERM";
+  if (limpio.startsWith("DESC")) return "DESC";
+  if (limpio.startsWith("LIC")) return "LIC";
+  return limpio.slice(0, 4);
 }
 
 function RegistroHoras() {
-  const { colaborador, periodos, periodoActivo } = useSesion();
+  const { colaborador, periodos } = useSesion();
   const qc = useQueryClient();
   const colaboradorId = colaborador?.id ?? null;
+  const periodo = periodos.find((p) => (p.estado ?? "").toLowerCase() === "abierto") ?? null;
+  const periodoId = periodo?.id ?? "";
+  const rango = periodo?.anio && periodo?.mes ? rangoMes(periodo.anio, periodo.mes) : null;
+  const mes = periodo?.anio && periodo?.mes ? new Date(periodo.anio, periodo.mes - 1, 1) : null;
+  const habilitado = sustentaConfigurado && !!colaboradorId && !!periodoId && !!rango;
 
-  const [mes, setMes] = useState(() => startOfMonth(new Date()));
-  const mesTocado = useRef(false);
-
-  // Por defecto se abre en el periodo abierto; el usuario puede navegar a otros meses.
-  useEffect(() => {
-    if (mesTocado.current || !periodoActivo?.anio || !periodoActivo?.mes) return;
-    setMes(new Date(periodoActivo.anio, periodoActivo.mes - 1, 1));
-  }, [periodoActivo]);
-
-  function irAMes(nuevo: Date) {
-    mesTocado.current = true;
-    setMes(nuevo);
-    setDia(null);
-  }
-  const [asignacionId, setAsignacionId] = useState<string>("");
-  const [dia, setDia] = useState<Date | null>(null);
+  const [asignacionId, setAsignacionId] = useState("");
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string | null>(null);
   const [actividadId, setActividadId] = useState("");
   const [horas, setHoras] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
   const [errorBD, setErrorBD] = useState<string | null>(null);
 
-  const habilitado = sustentaConfigurado && !!colaboradorId;
-
   const asignacionesQ = useQuery({
-    queryKey: ["asignaciones", colaboradorId],
+    queryKey: ["mis-asignaciones-periodo", colaboradorId, periodoId],
     enabled: habilitado,
     queryFn: async () => {
-      // La vista enriquecida ya trae proyecto y empresa resueltos.
+      if (!colaboradorId || !periodoId) return [];
       const { data, error } = await sustenta
-        .from("hr_v_asignacion_detalle")
+        .from("hr_v_asignacion_periodo")
         .select("*")
-        .eq("colaborador_id", colaboradorId);
+        .eq("colaborador_id", colaboradorId)
+        .eq("periodo_id", periodoId)
+        .order("proyecto_codigo");
       if (error) throw error;
-      return ((data ?? []) as AsignacionDetalle[]).map((d) => ({
-        id: d.id,
-        proyecto_id: d.proyecto_id,
-        colaborador_id: d.colaborador_id,
-        rol_proyecto: d.rol_proyecto,
-        dedicacion_pct: d.dedicacion_pct,
-        fecha_inicio: d.fecha_inicio,
-        fecha_fin: d.fecha_fin,
-        cobrable: d.cobrable,
-        proyecto: {
-          id: d.proyecto_id,
-          codigo: d.proyecto_codigo,
-          nombre: d.proyecto_nombre,
-          empresa_id: d.empresa_id,
-        },
-      })) as Asignacion[];
+      return (data ?? []) as AsignacionPeriodo[];
+    },
+  });
+
+  const registrosQ = useQuery({
+    queryKey: ["registros-detalle", colaboradorId, periodoId],
+    enabled: habilitado,
+    queryFn: async () => {
+      if (!colaboradorId || !rango) return [];
+      const { data, error } = await sustenta
+        .from("hr_v_registro_detalle")
+        .select("*")
+        .eq("colaborador_id", colaboradorId)
+        .gte("fecha", rango.inicio)
+        .lte("fecha", rango.fin)
+        .order("fecha");
+      if (error) throw error;
+      return (data ?? []) as RegistroDetalle[];
+    },
+  });
+
+  const capacidadQ = useQuery({
+    queryKey: ["mi-capacidad", periodoId, colaboradorId],
+    enabled: habilitado,
+    queryFn: async () => {
+      if (!colaboradorId || !periodoId) return null;
+      const { data, error } = await sustenta
+        .from("hr_v_capacidad")
+        .select("*")
+        .eq("periodo_id", periodoId)
+        .eq("colaborador_id", colaboradorId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as CapacidadFila | null;
+    },
+  });
+
+  const feriadosQ = useQuery({
+    queryKey: ["feriados", rango?.inicio],
+    enabled: habilitado,
+    queryFn: async () => {
+      if (!rango) return [];
+      const { data, error } = await sustenta
+        .from("hr_feriado")
+        .select("*")
+        .gte("fecha", rango.inicio)
+        .lte("fecha", rango.fin);
+      if (error) throw error;
+      return (data ?? []) as Feriado[];
+    },
+  });
+
+  const incidenciasQ = useQuery({
+    queryKey: ["mis-incidencias", colaboradorId, rango?.inicio],
+    enabled: habilitado,
+    queryFn: async () => {
+      if (!colaboradorId || !rango) return [];
+      const { data, error } = await sustenta
+        .from("hr_incidencia")
+        .select("*")
+        .eq("colaborador_id", colaboradorId)
+        .lte("fecha_inicio", rango.fin)
+        .gte("fecha_fin", rango.inicio);
+      if (error) throw error;
+      return (data ?? []) as Incidencia[];
     },
   });
 
@@ -126,150 +160,100 @@ function RegistroHoras() {
     queryKey: ["actividades"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta.from("hr_actividad").select("*");
+      const { data, error } = await sustenta.from("hr_actividad").select("*").eq("activo", true).order("nombre");
       if (error) throw error;
       return (data ?? []) as Actividad[];
     },
   });
 
-  const empresasQ = useQuery({
-    queryKey: ["empresas"],
-    enabled: sustentaConfigurado,
-    queryFn: async () => {
-      const { data, error } = await sustenta.from("hr_empresa_vinculada").select("*");
-      if (error) throw error;
-      return (data ?? []) as EmpresaVinculada[];
-    },
-  });
-
-  const desde = iso(startOfMonth(mes));
-  const hasta = iso(endOfMonth(mes));
-
-  const registrosQ = useQuery({
-    queryKey: ["registros", colaboradorId, desde],
-    enabled: habilitado,
-    queryFn: async () => {
-      const { data, error } = await sustenta
-        .from("hr_registro_hora")
-        .select("*")
-        .eq("colaborador_id", colaboradorId)
-        .gte("fecha", desde)
-        .lte("fecha", hasta);
-      if (error) throw error;
-      return (data ?? []) as RegistroHora[];
-    },
-  });
-
-  const feriadosQ = useQuery({
-    queryKey: ["feriados", desde],
-    enabled: sustentaConfigurado,
-    queryFn: async () => {
-      const { data, error } = await sustenta.from("hr_feriado").select("*").gte("fecha", desde).lte("fecha", hasta);
-      if (error) throw error;
-      return (data ?? []) as Feriado[];
-    },
-  });
-
-  const incidenciasQ = useQuery({
-    queryKey: ["incidencias", colaboradorId],
-    enabled: habilitado,
-    queryFn: async () => {
-      const { data, error } = await sustenta.from("hr_incidencia").select("*").eq("colaborador_id", colaboradorId);
-      if (error) throw error;
-      return (data ?? []) as Incidencia[];
-    },
-  });
-
   const asignaciones = asignacionesQ.data ?? [];
-  const asignacionesVigentes = useMemo(
-    () =>
-      asignaciones.filter((a) => {
-        const fin = a.fecha_fin ? parseISO(a.fecha_fin) : null;
-        return !fin || !isBefore(fin, new Date());
-      }),
-    [asignaciones],
-  );
-  const asignacion = asignaciones.find((a) => a.id === asignacionId) ?? asignacionesVigentes[0] ?? null;
-
   const registros = registrosQ.data ?? [];
   const feriados = feriadosQ.data ?? [];
   const incidencias = incidenciasQ.data ?? [];
-
-  const periodoDelMes = useMemo(
-    () => periodos.find((p) => p.anio === mes.getFullYear() && p.mes === mes.getMonth() + 1) ?? null,
-    [periodos, mes],
-  );
-  const mesCerrado = (periodoDelMes?.estado ?? "").toLowerCase() === "cerrado";
-  const mesSinPeriodo = !periodoDelMes;
-  const soloLectura = mesCerrado || mesSinPeriodo;
-
+  const asignacion = asignaciones.find((a) => a.asignacion_id === asignacionId) ?? asignaciones[0] ?? null;
+  const colorSeleccionado = PALETA[Math.max(0, asignaciones.indexOf(asignacion ?? asignaciones[0])) % PALETA.length];
+  const cap = capacidadQ.data;
   const dias = useMemo(
-    () => eachDayOfInterval({ start: startOfMonth(mes), end: endOfMonth(mes) }),
+    () => (mes ? eachDayOfInterval({ start: startOfMonth(mes), end: endOfMonth(mes) }) : []),
     [mes],
   );
+  const hoy = iso(new Date());
 
-  function estadoDia(d: Date) {
-    const f = iso(d);
-    if (feriados.some((h) => h.fecha === f)) return "feriado" as const;
-    if (d.getDay() === 0 || d.getDay() === 6) return "no_laborable" as const;
-    if (
-      incidencias.some((i) => {
-        const ini = i.fecha_inicio ? parseISO(i.fecha_inicio) : null;
-        const fin = i.fecha_fin ? parseISO(i.fecha_fin) : ini;
-        return ini && fin && !isBefore(d, ini) && !isAfter(d, fin);
-      })
-    )
-      return "incidencia" as const;
-    const total = registros.filter((r) => r.fecha === f).reduce((s, r) => s + Number(r.horas ?? 0), 0);
-    if (total >= HORAS_JORNADA) return "completo" as const;
-    if (total > 0) return "parcial" as const;
-    return "pendiente" as const;
+  function feriadoEn(fecha: string) {
+    return feriados.find((f) => f.fecha === fecha) ?? null;
   }
 
-  function dentroDeVigencia(d: Date) {
-    if (!asignacion) return false;
-    const ini = asignacion.fecha_inicio ? parseISO(asignacion.fecha_inicio) : null;
-    const fin = asignacion.fecha_fin ? parseISO(asignacion.fecha_fin) : null;
-    if (ini && isBefore(d, ini)) return false;
-    if (fin && isAfter(d, fin)) return false;
-    return true;
+  function incidenciaEn(fecha: string) {
+    return incidencias.find((i) => {
+      const inicio = i.fecha_inicio?.slice(0, 10) ?? null;
+      const fin = i.fecha_fin?.slice(0, 10) ?? inicio;
+      return incluyeFecha(inicio, fin, fecha);
+    }) ?? null;
   }
 
-  const empresaReceptora = empresasQ.data?.find((e) => e.id === asignacion?.proyecto?.empresa_id) ?? null;
-  const cobrable = asignacion?.cobrable ?? asignacion?.proyecto?.cobrable ?? null;
-  const cobrabilidad = asignacion?.cobrabilidad ?? (cobrable == null ? null : cobrable ? "Cobrable" : "No cobrable");
+  function esNoLaborable(fecha: string, dia: Date) {
+    return dia.getDay() === 0 || dia.getDay() === 6 || !!feriadoEn(fecha) || !!incidenciaEn(fecha);
+  }
 
-  const registrosDelDia = dia ? registros.filter((r) => r.fecha === iso(dia)) : [];
-  const pendientes = dias.filter((d) => estadoDia(d) === "pendiente" && dentroDeVigencia(d)).length;
+  function asignacionesDelDia(fecha: string, dia: Date) {
+    if (esNoLaborable(fecha, dia)) return [];
+    return asignaciones.filter((a) => incluyeFecha(a.asignacion_desde, a.asignacion_hasta, fecha));
+  }
+
+  function esperadoDelDia(fecha: string, dia: Date) {
+    return asignacionesDelDia(fecha, dia).reduce(
+      (suma, a) => suma + Number(a.jornada_horas ?? cap?.jornada_horas ?? 0) * Number(a.dedicacion_pct ?? 0) / 100,
+      0,
+    );
+  }
+
+  function registradoDelDia(fecha: string) {
+    return registros.filter((r) => r.fecha === fecha).reduce((suma, r) => suma + Number(r.horas ?? 0), 0);
+  }
+
+  const seleccionadoDentro = !!asignacion && !!fechaSeleccionada && incluyeFecha(
+    asignacion.asignacion_desde,
+    asignacion.asignacion_hasta,
+    fechaSeleccionada,
+  );
+  const diaSeleccionado = fechaSeleccionada ? parseISO(fechaSeleccionada) : null;
+  const registrosDelDia = fechaSeleccionada ? registros.filter((r) => r.fecha === fechaSeleccionada) : [];
+  const descripcionValida = descripcion.trim().length >= 10;
+  const errores = asignacionesQ.error ?? registrosQ.error ?? capacidadQ.error ?? feriadosQ.error ?? incidenciasQ.error;
+
+  async function refrescarTablero() {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["registros-detalle"] }),
+      qc.invalidateQueries({ queryKey: ["mis-asignaciones-periodo"] }),
+      qc.invalidateQueries({ queryKey: ["mi-capacidad"] }),
+    ]);
+  }
 
   const guardar = useMutation({
     mutationFn: async () => {
-      if (!dia || !asignacion || !colaboradorId) throw new Error("Selecciona un día y un proyecto.");
-      const fila: Record<string, unknown> = {
+      if (!fechaSeleccionada || !asignacion || !colaboradorId) throw new Error("Selecciona un día y un proyecto.");
+      const { data, error } = await sustenta.from("hr_registro_hora").insert({
         colaborador_id: colaboradorId,
         proyecto_id: asignacion.proyecto_id,
         actividad_id: actividadId || null,
-        fecha: iso(dia),
+        fecha: fechaSeleccionada,
         horas: Number(horas),
         descripcion,
-      };
-      const { data, error } = await sustenta.from("hr_registro_hora").insert(fila).select("*").single();
+      }).select("*").single();
       if (error) throw error;
       const registro = data as RegistroHora;
 
       if (archivo) {
-        const f = dia;
-        const ruta = `horas/${f.getFullYear()}/${String(f.getMonth() + 1).padStart(2, "0")}/${registro.id}-${archivo.name}`;
-        const up = await sustenta.storage
-          .from("sustentos")
-          .upload(ruta, archivo, { upsert: true, contentType: archivo.type || "application/octet-stream" });
-        if (up.error) throw up.error;
-
-        const buffer = await archivo.arrayBuffer();
-        const digest = await crypto.subtle.digest("SHA-256", buffer);
+        const partes = fechaSeleccionada.split("-");
+        const ruta = `horas/${partes[0]}/${partes[1]}/${registro.id}-${archivo.name}`;
+        const subida = await sustenta.storage.from("sustentos").upload(ruta, archivo, {
+          upsert: true,
+          contentType: archivo.type || "application/octet-stream",
+        });
+        if (subida.error) throw subida.error;
+        const digest = await crypto.subtle.digest("SHA-256", await archivo.arrayBuffer());
         const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-
-        const { error: errSustento } = await sustenta.from("hr_sustento").insert({
+        const { error: errorSustento } = await sustenta.from("hr_sustento").insert({
           registro_id: registro.id,
           nombre_archivo: archivo.name,
           tipo_documento: archivo.type || archivo.name.split(".").pop() || "archivo",
@@ -277,146 +261,180 @@ function RegistroHoras() {
           tamano_bytes: archivo.size,
           storage_path: ruta,
         });
-        if (errSustento) throw errSustento;
+        if (errorSustento) throw errorSustento;
       }
       return registro;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setErrorBD(null);
       setHoras("");
       setDescripcion("");
       setArchivo(null);
       toast.success("Registro guardado");
-      qc.invalidateQueries({ queryKey: ["registros"] });
+      await refrescarTablero();
     },
-    onError: (e) => {
-      const msg = mensajeDeError(e);
-      setErrorBD(msg);
-      toast.error(msg);
+    onError: (error) => {
+      const mensaje = mensajeDeError(error);
+      setErrorBD(mensaje);
+      toast.error(mensaje);
     },
   });
 
-  const descripcionValida = descripcion.trim().length >= 10;
+  const eliminar = useMutation({
+    mutationFn: async (registroId: string) => {
+      const { error } = await sustenta.from("hr_registro_hora").delete().eq("id", registroId);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      setErrorBD(null);
+      toast.success("Registro eliminado");
+      await refrescarTablero();
+    },
+    onError: (error) => {
+      const mensaje = mensajeDeError(error);
+      setErrorBD(mensaje);
+      toast.error(mensaje);
+    },
+  });
+
+  if (!periodo || !rango || !mes) {
+    return (
+      <AppShell>
+        <PageHeader titulo="Registro de horas" descripcion="Tu tablero personal de compromisos y carga diaria." />
+        <Card>
+          <div className="p-6">
+            <Aviso tono="alerta" titulo="No hay un periodo abierto">
+              Administración debe aperturar un periodo antes de que puedas registrar horas.
+            </Aviso>
+            <Link to="/horas/capacidad" className="mt-4 inline-flex text-[12px] font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground">
+              Ver meses cerrados
+            </Link>
+          </div>
+        </Card>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
       <PageHeader
         titulo="Registro de horas"
-        descripcion="Cada hora registrada es evidencia: proyecto, actividad, descripción y sustento."
-        acciones={[
-          { label: "Días pendientes del mes", contador: pendientes },
-          { label: "Mi capacidad", to: "/horas/capacidad" },
-        ]}
+        descripcion={`Tu tablero de ${format(mes, "MMMM yyyy", { locale: es })}: compromisos, avance y carga diaria.`}
+        acciones={[{ label: "Ver meses cerrados", to: "/horas/capacidad" }]}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+      {errores ? <Aviso tono="alerta" titulo="La base de datos respondió">{mensajeDeError(errores)}</Aviso> : null}
+
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-[280px_minmax(520px,1fr)_340px]">
         <Card>
-          <CardHeader titulo="Proyecto y calendario" descripcion="Solo tus asignaciones vigentes." />
-          <div className="space-y-4 p-4">
-            <div>
-              <Etiqueta>Proyecto asignado</Etiqueta>
-              <select
-                className="field mt-1"
-                value={asignacion?.id ?? ""}
-                onChange={(e) => {
-                  setAsignacionId(e.target.value);
-                  setDia(null);
-                }}
-              >
-                {asignacionesVigentes.length === 0 ? <option value="">Sin asignaciones vigentes</option> : null}
-                {asignacionesVigentes.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.proyecto?.nombre ?? a.proyecto?.codigo ?? a.proyecto_id.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
-              {asignacion ? (
-                <p className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-                  <span>
-                    Vigencia{" "}
-                    <Num>
-                      {asignacion.fecha_inicio ?? "—"} → {asignacion.fecha_fin ?? "sin fin"}
-                    </Num>
-                  </span>
-                  {dedicacionDe(asignacion) != null ? (
-                    <Badge tono="info">
-                      Dedicación <Num>{dedicacionDe(asignacion)}%</Num>
-                    </Badge>
-                  ) : null}
-                </p>
-              ) : null}
+          <CardHeader titulo="Mis proyectos del mes" descripcion="Selecciona el compromiso que vas a registrar." />
+          {asignaciones.length === 0 ? (
+            <Vacio mensaje={`No tienes proyectos asignados en ${format(mes, "MMMM", { locale: es })}.`} />
+          ) : (
+            <div className="space-y-2 p-3">
+              {asignaciones.map((a, indice) => {
+                const color = PALETA[indice % PALETA.length];
+                const activo = a.asignacion_id === asignacion?.asignacion_id;
+                const esperado = Number(a.horas_esperadas ?? 0);
+                const registrado = Number(a.horas_registradas ?? 0);
+                const avance = esperado > 0 ? Math.min(100, registrado / esperado * 100) : 0;
+                return (
+                  <button
+                    key={a.asignacion_id}
+                    type="button"
+                    onClick={() => {
+                      setAsignacionId(a.asignacion_id);
+                      if (fechaSeleccionada && !incluyeFecha(a.asignacion_desde, a.asignacion_hasta, fechaSeleccionada)) setFechaSeleccionada(null);
+                    }}
+                    className={cn(
+                      "w-full rounded-[6px] border p-3 text-left transition-colors",
+                      activo ? cn(color.suave, color.borde) : "border-border bg-surface hover:bg-surface-muted",
+                    )}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", color.punto)} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12px] font-bold"><Num>{a.proyecto_codigo ?? "—"}</Num> · {a.proyecto_nombre ?? "Sin nombre"}</p>
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{a.empresa ?? "Empresa no disponible"}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <Num>{fechaCorta(a.asignacion_desde)} – {fechaCorta(a.asignacion_hasta)}</Num>
+                      <Num className={cn("font-semibold", color.texto)}>{n(a.dedicacion_pct, 0)}%</Num>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                      <div className={cn("h-full rounded-full", color.punto)} style={{ width: `${avance}%` }} />
+                    </div>
+                    <p className="mt-1.5 text-right text-[11px] text-muted-foreground"><Num>{horasMinutos(registrado)} / {horasMinutos(esperado)}</Num></p>
+                  </button>
+                );
+              })}
             </div>
+          )}
+        </Card>
 
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <Button variante="fantasma" onClick={() => irAMes(subMonths(mes, 1))} aria-label="Mes anterior">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Num className="text-[13px] font-semibold capitalize">
-                  {format(mes, "MMMM yyyy", { locale: es })}
-                </Num>
-                <Button variante="fantasma" onClick={() => irAMes(addMonths(mes, 1))} aria-label="Mes siguiente">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-7 gap-1 text-center">
-                {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
-                  <span key={i} className="label-xs py-1">
-                    {d}
-                  </span>
-                ))}
-                {Array.from({ length: (startOfMonth(mes).getDay() + 6) % 7 }).map((_, i) => (
-                  <span key={`e${i}`} />
-                ))}
-                {dias.map((d) => {
-                  const st = estadoDia(d);
-                  const activo = dia && isSameDay(d, dia);
-                  const permitido = !soloLectura && dentroDeVigencia(d) && st !== "feriado" && st !== "no_laborable";
-                  const estilos: Record<string, string> = {
-                    completo: "bg-success-soft text-success border-success/25",
-                    parcial: "bg-warning-soft text-warning border-warning/25",
-                    pendiente: "bg-surface text-foreground border-border",
-                    incidencia: "bg-info-soft text-info border-info/25",
-                    feriado: "bg-accent-soft text-accent border-accent/20",
-                    no_laborable: "bg-surface-muted text-muted-foreground border-border",
-                  };
-                  return (
-                    <button
-                      key={iso(d)}
-                      disabled={!permitido}
-                      onClick={() => setDia(d)}
-                      className={cn(
-                        "num rounded-[6px] border py-2 text-[12px] transition-colors disabled:opacity-40",
-                        estilos[st],
-                        activo && "ring-2 ring-accent",
-                        permitido && "hover:border-accent",
-                      )}
-                      title={st}
-                    >
-                      {format(d, "d")}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {soloLectura ? (
-                <div className="mt-3">
-                  <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "Mes cerrado: solo lectura" : "Periodo no aperturado"}>
-                    {mesCerrado
-                      ? `${format(mes, "MMMM yyyy", { locale: es })} está cerrado. Sus registros quedan sellados como evidencia; cualquier corrección exige reabrir el periodo desde Administración.`
-                      : `El periodo ${format(mes, "yyyy-MM")} no ha sido aperturado. Administración debe abrirlo antes de registrar.`}
-                  </Aviso>
-                </div>
-              ) : null}
-
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <Badge tono="exito">Completo</Badge>
-                <Badge tono="alerta">Parcial</Badge>
-                <Badge tono="neutro">Pendiente</Badge>
-                <Badge tono="info">Incidencia</Badge>
-                <Badge tono="acento">Feriado</Badge>
-              </div>
+        <Card>
+          <CardHeader
+            titulo={format(mes, "MMMM yyyy", { locale: es })}
+            descripcion={asignacion ? `${asignacion.proyecto_codigo ?? ""} · ${asignacion.proyecto_nombre ?? ""}` : "Sin proyecto seleccionado"}
+          />
+          <div className="p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" />Carga completa</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" />Carga parcial</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning-soft ring-1 ring-warning/30" />Incidencia</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-surface-muted ring-1 ring-border" />No laborable</span>
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {DIAS.map((nombre, i) => <span key={`${nombre}-${i}`} className="label-xs py-1 text-center">{nombre}</span>)}
+              {Array.from({ length: (startOfMonth(mes).getDay() + 6) % 7 }).map((_, i) => <span key={`vacio-${i}`} />)}
+              {dias.map((dia) => {
+                const fecha = iso(dia);
+                const feriado = feriadoEn(fecha);
+                const incidencia = incidenciaEn(fecha);
+                const finSemana = dia.getDay() === 0 || dia.getDay() === 6;
+                const dentro = asignacion ? incluyeFecha(asignacion.asignacion_desde, asignacion.asignacion_hasta, fecha) : false;
+                const laborable = dentro && !finSemana && !feriado && !incidencia;
+                const asignacionesDia = asignacionesDelDia(fecha, dia);
+                const totalDedicacion = asignacionesDia.reduce((s, a) => s + Number(a.dedicacion_pct ?? 0), 0);
+                const esperado = esperadoDelDia(fecha, dia);
+                const registrado = registradoDelDia(fecha);
+                const futuro = fecha > hoy;
+                const completo = !futuro && registrado > 0 && esperado > 0 && registrado >= esperado;
+                const parcial = !futuro && registrado > 0 && !completo;
+                const seleccionado = fechaSeleccionada === fecha;
+                return (
+                  <button
+                    key={fecha}
+                    type="button"
+                    disabled={!laborable}
+                    onClick={() => setFechaSeleccionada(fecha)}
+                    title={feriado?.nombre ?? incidencia?.tipo ?? (!dentro ? "Fuera de la vigencia de la asignación" : undefined)}
+                    className={cn(
+                      "relative min-h-20 rounded-[6px] border p-2 text-left transition-colors",
+                      !dentro && "border-border bg-surface-muted/60 text-muted-foreground",
+                      dentro && (finSemana || feriado) && "border-border bg-surface-muted text-muted-foreground",
+                      dentro && incidencia && "border-warning/35 bg-warning-soft text-warning",
+                      laborable && cn(colorSeleccionado.suave, "hover:brightness-95", colorSeleccionado.borde),
+                      seleccionado && "ring-2 ring-foreground ring-offset-1",
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <Num className="text-[12px] font-semibold">{format(dia, "d")}</Num>
+                      {completo ? <span className="h-2 w-2 rounded-full bg-success" title="Carga completa" /> : parcial ? <span className="h-2 w-2 rounded-full bg-warning" title="Carga parcial" /> : null}
+                    </div>
+                    {laborable ? <Num className={cn("mt-2 block text-[12px] font-bold", colorSeleccionado.texto)}>{n(asignacion?.dedicacion_pct, 0)}%</Num> : null}
+                    {incidencia ? <span className="mt-2 block text-[10px] font-bold">{abreviarIncidencia(incidencia.tipo)}</span> : null}
+                    {feriado ? <span className="mt-2 block truncate text-[9px] font-semibold">Feriado</span> : null}
+                    {finSemana && dentro && !feriado ? <span className="mt-2 block text-[9px]">Fin de semana</span> : null}
+                    {laborable && asignacionesDia.length > 1 ? (
+                      <span className={cn("absolute bottom-1.5 left-2 text-[9px]", totalDedicacion > 100 ? "font-bold text-warning" : "text-muted-foreground")}>
+                        total <Num>{n(totalDedicacion, 0)}%</Num>
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </Card>
@@ -424,166 +442,143 @@ function RegistroHoras() {
         <div className="space-y-4">
           <Card>
             <CardHeader
-              titulo={dia ? `Día ${format(dia, "dd/MM/yyyy")}` : "Selecciona un día"}
-              descripcion="Registra horas con actividad, descripción y evidencia."
+              titulo={diaSeleccionado ? format(diaSeleccionado, "EEEE d 'de' MMMM", { locale: es }) : "Registro del día"}
+              descripcion={asignacion ? `${asignacion.proyecto_codigo ?? ""} · ${asignacion.proyecto_nombre ?? ""}` : "Selecciona un proyecto"}
             />
-            {soloLectura ? (
-              <div className="p-4">
-                <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "El periodo está cerrado" : "Periodo no aperturado"}>
-                  {mesCerrado
-                    ? "No se admiten nuevos registros ni modificaciones sobre un mes cerrado. Para corregir horas de este periodo, Administración debe reabrirlo."
-                    : `El periodo ${format(mes, "yyyy-MM")} no ha sido aperturado. Administración debe abrirlo antes de registrar: hasta entonces no se admiten registros en este mes.`}
-                </Aviso>
-              </div>
-            ) : !dia ? (
-              <Vacio mensaje="Elige una fecha habilitada del calendario para registrar horas." />
+            {!diaSeleccionado ? (
+              <Vacio mensaje="Selecciona un día habilitado del calendario." />
+            ) : !seleccionadoDentro ? (
+              <div className="p-4"><Aviso tono="neutro">El día está fuera de la vigencia de la asignación seleccionada.</Aviso></div>
             ) : (
               <div className="space-y-4 p-4">
-                {registrosDelDia.length > 0 ? (
-                  <div className="rounded-[6px] border border-border">
-                    {registrosDelDia.map((r) => (
-                      <div key={r.id} className="border-b border-border px-3 py-2 last:border-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[13px]">{r.descripcion ?? "—"}</span>
-                          <Num className="text-[13px] font-semibold">{Number(r.horas).toFixed(2)} h</Num>
-                        </div>
-                        <SustentosDelRegistro registroId={r.id} />
-                      </div>
+                <div>
+                  <Etiqueta>Proyecto</Etiqueta>
+                  <select className="field mt-1" value={asignacion?.asignacion_id ?? ""} onChange={(e) => setAsignacionId(e.target.value)}>
+                    {asignaciones.filter((a) => incluyeFecha(a.asignacion_desde, a.asignacion_hasta, fechaSeleccionada)).map((a) => (
+                      <option key={a.asignacion_id} value={a.asignacion_id}>{a.proyecto_codigo} · {a.proyecto_nombre}</option>
                     ))}
-                  </div>
-                ) : null}
-
-                <div className="grid gap-3 sm:grid-cols-2">
+                  </select>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-3">
                   <div>
                     <Etiqueta>Actividad</Etiqueta>
-                    <select
-                      className="field mt-1"
-                      value={actividadId}
-                      onChange={(e) => setActividadId(e.target.value)}
-                    >
-                      <option value="">Selecciona una actividad</option>
-                      {(actividadesQ.data ?? []).map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.nombre ?? a.codigo ?? a.id.slice(0, 8)}
-                        </option>
-                      ))}
+                    <select className="field mt-1" value={actividadId} onChange={(e) => setActividadId(e.target.value)}>
+                      <option value="">Selecciona</option>
+                      {(actividadesQ.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.nombre ?? a.codigo}</option>)}
                     </select>
                   </div>
                   <div>
                     <Etiqueta>Horas</Etiqueta>
-                    <input
-                      className="field num mt-1"
-                      type="number"
-                      step="0.25"
-                      min="0"
-                      max="24"
-                      value={horas}
-                      onChange={(e) => setHoras(e.target.value)}
-                      placeholder="0.00"
-                    />
+                    <input className="field num mt-1" type="number" step="0.25" min="0.25" max="24" value={horas} onChange={(e) => setHoras(e.target.value)} placeholder="0:00" />
                   </div>
                 </div>
-
                 <div>
-                  <Etiqueta>Descripción del trabajo (mínimo 10 caracteres)</Etiqueta>
-                  <textarea
-                    className="field mt-1 min-h-24"
-                    value={descripcion}
-                    onChange={(e) => setDescripcion(e.target.value)}
-                    placeholder="Describe la actividad realizada, entregable y contraparte."
-                  />
-                  <p
-                    className={cn(
-                      "mt-1 text-[11px]",
-                      descripcionValida ? "text-muted-foreground" : "text-accent",
-                    )}
-                  >
-                    <Num>{descripcion.trim().length}</Num> / <Num>10</Num> caracteres mínimos
-                  </p>
+                  <Etiqueta>Descripción (mínimo 10 caracteres)</Etiqueta>
+                  <textarea className="field mt-1 min-h-24" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Actividad, entregable y contraparte." />
+                  <p className={cn("mt-1 text-[10px]", descripcionValida ? "text-muted-foreground" : "text-accent")}><Num>{descripcion.trim().length}</Num> / 10</p>
                 </div>
-
                 <div>
-                  <Etiqueta>Evidencia (se guarda en el repositorio de sustentos)</Etiqueta>
-                  <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-[6px] border border-dashed border-border-strong px-3 py-4 text-[13px] text-muted-foreground hover:border-accent">
-                    <Upload className="h-4 w-4" />
-                    {archivo ? (
-                      <span className="flex items-center gap-1.5 text-foreground">
-                        <Paperclip className="h-3.5 w-3.5" />
-                        {archivo.name}
-                      </span>
-                    ) : (
-                      "Arrastra o selecciona un archivo de respaldo"
-                    )}
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
-                    />
+                  <Etiqueta>Evidencia</Etiqueta>
+                  <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-[6px] border border-dashed border-border-strong px-3 py-3 text-[12px] text-muted-foreground hover:border-accent">
+                    {archivo ? <Paperclip className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+                    <span className="min-w-0 truncate">{archivo?.name ?? "Selecciona un archivo"}</span>
+                    <input type="file" className="hidden" accept={ARCHIVOS_ACEPTADOS} onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
                   </label>
+                  <p className="mt-1 text-[9px] text-muted-foreground">PDF, PNG, JPG, DOCX, XLSX o PPTX</p>
                 </div>
-
-                {errorBD ? <Aviso tono="acento" titulo="La base rechazó el registro">{errorBD}</Aviso> : null}
-
-                <div className="flex justify-end gap-2">
-                  <Button variante="secundario" onClick={() => setDia(null)}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    variante="primario"
-                    cargando={guardar.isPending}
-                    disabled={!descripcionValida || !horas || !asignacion}
-                    onClick={() => guardar.mutate()}
-                  >
-                    Guardar registro
-                  </Button>
-                </div>
+                {errorBD ? <Aviso tono="acento" titulo="La base respondió">{errorBD}</Aviso> : null}
+                <Button variante="primario" className="w-full" cargando={guardar.isPending} disabled={!descripcionValida || !horas || !actividadId || !asignacion} onClick={() => guardar.mutate()}>
+                  Guardar registro
+                </Button>
               </div>
             )}
           </Card>
 
-          <Card>
-            <CardHeader
-              titulo="Cómo se clasificó este registro"
-              descripcion="Resuelto por el sistema según la asignación. No editable."
-            />
-            <div className="grid gap-4 p-4 sm:grid-cols-3">
-              <div>
-                <Etiqueta>Cobrabilidad</Etiqueta>
-                <div className="mt-1">
-                  {cobrabilidad ? (
-                    <Badge tono={cobrable === false ? "neutro" : "exito"}>{cobrabilidad}</Badge>
-                  ) : (
-                    <span className="text-[13px] text-muted-foreground">—</span>
-                  )}
+          {diaSeleccionado ? (
+            <Card>
+              <CardHeader titulo="Registros cargados" descripcion={`${horasMinutos(registradoDelDia(fechaSeleccionada ?? ""))} en el día`} />
+              {registrosDelDia.length === 0 ? <Vacio mensaje="Todavía no hay horas registradas este día." /> : (
+                <div className="divide-y divide-border">
+                  {registrosDelDia.map((registro) => (
+                    <div key={registro.id} className="p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-semibold">{registro.proyecto_codigo} · {registro.actividad ?? "Sin actividad"}</p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">{registro.descripcion ?? "—"}</p>
+                        </div>
+                        <Num className="shrink-0 text-[12px] font-bold">{horasMinutos(registro.horas)}</Num>
+                      </div>
+                      <div className="mt-2 flex items-end justify-between gap-2">
+                        <SustentosDelRegistro registroId={registro.id} />
+                        <Button variante="fantasma" className="h-7 px-2 text-[11px] text-accent" cargando={eliminar.isPending && eliminar.variables === registro.id} onClick={() => eliminar.mutate(registro.id)}>
+                          <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div>
-                <Etiqueta>Empresa receptora</Etiqueta>
-                <p className="mt-1 text-[13px] font-medium">{nombreEmpresa(empresaReceptora)}</p>
-                {empresaReceptora?.ruc ? <Num className="text-[12px] text-muted-foreground">RUC {empresaReceptora.ruc}</Num> : null}
-              </div>
-              <div>
-                <Etiqueta>Canal</Etiqueta>
-                <p className="mt-1 text-[13px] font-medium">
-                  {asignacion?.proyecto?.codigo ? `Proyecto ${asignacion.proyecto.codigo}` : "Servicio intragrupo"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2 border-t border-border px-4 py-3 text-[12px] text-muted-foreground">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              La clasificación final se confirma al cerrar el periodo y valorizar las horas.
-            </div>
-          </Card>
+              )}
+            </Card>
+          ) : null}
         </div>
       </div>
+
+      <Card className="mt-4">
+        <CardHeader titulo="Resumen del mes" descripcion={`Compromisos y capacidad personal de ${format(mes, "MMMM yyyy", { locale: es })}.`} />
+        <div className="grid gap-6 p-4 lg:grid-cols-[1fr_1.2fr]">
+          <div>
+            <h3 className="text-[13px] font-semibold">Compromisos vigentes</h3>
+            <div className="mt-3 space-y-2">
+              {asignaciones.map((a, indice) => {
+                const color = PALETA[indice % PALETA.length];
+                return (
+                  <div key={a.asignacion_id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border pb-2 last:border-0">
+                    <span className={cn("h-2.5 w-2.5 rounded-full", color.punto)} />
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] font-semibold"><Num>{a.proyecto_codigo}</Num> · {a.proyecto_nombre}</p>
+                      <p className="text-[10px] text-muted-foreground"><Num>{fechaCorta(a.asignacion_desde)} – {fechaCorta(a.asignacion_hasta)}</Num></p>
+                    </div>
+                    <div className="text-right text-[10px]"><Num className={cn("font-bold", color.texto)}>{n(a.dedicacion_pct, 0)}%</Num><br /><Num className="text-muted-foreground">{horasMinutos(a.horas_esperadas)}</Num></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[6px] border border-border bg-border sm:grid-cols-4">
+              <ResumenCifra icono={<Clock3 className="h-4 w-4" />} etiqueta="Capacidad productiva" valor={horasMinutos(cap?.capacidad_productiva)} />
+              <ResumenCifra icono={<Check className="h-4 w-4" />} etiqueta="Comprometido" valor={horasMinutos(cap?.horas_planificadas)} nota={pct(cap?.dedicacion_total_pct, 0)} />
+              <ResumenCifra icono={<Circle className="h-4 w-4" />} etiqueta="Sin asignar" valor={horasMinutos(cap?.horas_sin_asignar)} nota={pct(Math.max(0, 100 - Number(cap?.dedicacion_total_pct ?? 0)), 0)} />
+              <ResumenCifra icono={<CalendarDays className="h-4 w-4" />} etiqueta="Registrado" valor={horasMinutos(cap?.horas_registradas)} />
+            </div>
+            {Number(cap?.dedicacion_total_pct ?? 0) > 100 ? (
+              <div className="mt-3 flex items-center gap-2 text-[11px] text-warning"><AlertTriangle className="h-4 w-4" />Tu dedicación total supera el 100%.</div>
+            ) : null}
+            <div className="mt-5 border-t border-border pt-4">
+              <p className="text-[11px] text-muted-foreground">Total comprometido en {format(mes, "MMMM", { locale: es })}</p>
+              <p className="mt-1 text-[23px] font-semibold"><Num>{horasMinutos(cap?.horas_planificadas)} / {horasMinutos(cap?.capacidad_productiva)}</Num></p>
+            </div>
+          </div>
+        </div>
+      </Card>
     </AppShell>
+  );
+}
+
+function ResumenCifra({ icono, etiqueta, valor, nota }: { icono: React.ReactNode; etiqueta: string; valor: string; nota?: string }) {
+  return (
+    <div className="min-h-24 bg-surface p-3">
+      <span className="text-muted-foreground">{icono}</span>
+      <p className="mt-2 text-[10px] font-semibold uppercase text-muted-foreground">{etiqueta}</p>
+      <Num className="mt-1 block text-[17px] font-semibold">{valor}</Num>
+      {nota ? <Num className="text-[10px] text-muted-foreground">{nota}</Num> : null}
+    </div>
   );
 }
 
 interface SustentoFila {
   id: string;
   nombre_archivo: string | null;
-  tipo_documento: string | null;
   tamano_bytes: number | null;
   storage_path: string | null;
   hash_sha256: string | null;
@@ -594,21 +589,15 @@ function SustentosDelRegistro({ registroId }: { registroId: string }) {
     queryKey: ["sustentos", registroId],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { data, error } = await sustenta
-        .from("hr_sustento")
-        .select("id, nombre_archivo, tipo_documento, tamano_bytes, storage_path, hash_sha256")
-        .eq("registro_id", registroId);
+      const { data, error } = await sustenta.from("hr_sustento").select("id, nombre_archivo, tamano_bytes, storage_path, hash_sha256").eq("registro_id", registroId);
       if (error) throw error;
       return (data ?? []) as SustentoFila[];
     },
   });
 
-  const sustentos = q.data ?? [];
-  if (sustentos.length === 0) return null;
-
-  async function descargar(s: SustentoFila) {
-    if (!s.storage_path) return;
-    const { data, error } = await sustenta.storage.from("sustentos").createSignedUrl(s.storage_path, 60);
+  async function descargar(sustento: SustentoFila) {
+    if (!sustento.storage_path) return;
+    const { data, error } = await sustenta.storage.from("sustentos").createSignedUrl(sustento.storage_path, 60);
     if (error || !data?.signedUrl) {
       toast.error(mensajeDeError(error));
       return;
@@ -616,20 +605,14 @@ function SustentosDelRegistro({ registroId }: { registroId: string }) {
     window.open(data.signedUrl, "_blank", "noopener");
   }
 
+  if ((q.data ?? []).length === 0) return <span className="text-[10px] text-muted-foreground">Sin sustento</span>;
   return (
-    <ul className="mt-1.5 space-y-1">
-      {sustentos.map((s) => (
-        <li key={s.id} className="flex items-center gap-2 text-[12px] text-muted-foreground">
+    <ul className="min-w-0 space-y-1">
+      {(q.data ?? []).map((s) => (
+        <li key={s.id} className="flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground">
           <Paperclip className="h-3 w-3 shrink-0" />
-          <button
-            type="button"
-            className="truncate underline underline-offset-2 hover:text-foreground"
-            onClick={() => void descargar(s)}
-            title={s.hash_sha256 ? `SHA-256: ${s.hash_sha256}` : undefined}
-          >
-            {s.nombre_archivo ?? "Sustento"}
-          </button>
-          {s.tamano_bytes ? <Num className="tabular-nums">{Math.round(s.tamano_bytes / 1024)} KB</Num> : null}
+          <button type="button" className="truncate underline underline-offset-2 hover:text-foreground" onClick={() => void descargar(s)} title={s.hash_sha256 ? `SHA-256: ${s.hash_sha256}` : undefined}>{s.nombre_archivo ?? "Sustento"}</button>
+          {s.tamano_bytes ? <Num className="shrink-0">{Math.round(s.tamano_bytes / 1024)} KB</Num> : null}
         </li>
       ))}
     </ul>

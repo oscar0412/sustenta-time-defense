@@ -14,3 +14,4 @@
 - [x] Edición completa de asignaciones y cierre anticipado.
 - [x] Descarga de liquidación en Excel con tres hojas.
 - [x] Evidencia real: subida al repositorio, hash SHA-256 y descarga firmada.
+- [ ] Rediseñar Registro de horas como tablero personal del periodo abierto y verificar con Óscar y Rosa.
