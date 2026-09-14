@@ -21,6 +21,7 @@ import { Route as AdminLiquidacionRouteImport } from './routes/admin.liquidacion
 import { Route as AdminPeriodosRouteImport } from './routes/admin.periodos'
 import { Route as DashboardCapacidadRouteImport } from './routes/dashboard.capacidad'
 import { Route as DashboardCumplimientoRouteImport } from './routes/dashboard.cumplimiento'
+import { Route as HorasAprobacionesRouteImport } from './routes/horas.aprobaciones'
 import { Route as HorasCapacidadRouteImport } from './routes/horas.capacidad'
 import { Route as HorasRegistroRouteImport } from './routes/horas.registro'
 import { Route as ProyectosIndexRouteImport } from './routes/proyectos.index'
@@ -88,6 +89,11 @@ const DashboardCumplimientoRoute = DashboardCumplimientoRouteImport.update({
   path: '/dashboard/cumplimiento',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HorasAprobacionesRoute = HorasAprobacionesRouteImport.update({
+  id: '/horas/aprobaciones',
+  path: '/horas/aprobaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HorasCapacidadRoute = HorasCapacidadRouteImport.update({
   id: '/horas/capacidad',
   path: '/horas/capacidad',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/admin/periodos': typeof AdminPeriodosRoute
   '/dashboard/capacidad': typeof DashboardCapacidadRoute
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
+  '/horas/aprobaciones': typeof HorasAprobacionesRoute
   '/horas/capacidad': typeof HorasCapacidadRoute
   '/horas/registro': typeof HorasRegistroRoute
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/admin/periodos': typeof AdminPeriodosRoute
   '/dashboard/capacidad': typeof DashboardCapacidadRoute
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
+  '/horas/aprobaciones': typeof HorasAprobacionesRoute
   '/horas/capacidad': typeof HorasCapacidadRoute
   '/horas/registro': typeof HorasRegistroRoute
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/admin/periodos': typeof AdminPeriodosRoute
   '/dashboard/capacidad': typeof DashboardCapacidadRoute
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
+  '/horas/aprobaciones': typeof HorasAprobacionesRoute
   '/horas/capacidad': typeof HorasCapacidadRoute
   '/horas/registro': typeof HorasRegistroRoute
   '/proyectos/asignaciones': typeof ProyectosAsignacionesRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/admin/periodos'
     | '/dashboard/capacidad'
     | '/dashboard/cumplimiento'
+    | '/horas/aprobaciones'
     | '/horas/capacidad'
     | '/horas/registro'
     | '/proyectos/asignaciones'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/admin/periodos'
     | '/dashboard/capacidad'
     | '/dashboard/cumplimiento'
+    | '/horas/aprobaciones'
     | '/horas/capacidad'
     | '/horas/registro'
     | '/proyectos/asignaciones'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/admin/periodos'
     | '/dashboard/capacidad'
     | '/dashboard/cumplimiento'
+    | '/horas/aprobaciones'
     | '/horas/capacidad'
     | '/horas/registro'
     | '/proyectos/asignaciones'
@@ -255,6 +267,7 @@ export interface RootRouteChildren {
   AdminPeriodosRoute: typeof AdminPeriodosRoute
   DashboardCapacidadRoute: typeof DashboardCapacidadRoute
   DashboardCumplimientoRoute: typeof DashboardCumplimientoRoute
+  HorasAprobacionesRoute: typeof HorasAprobacionesRoute
   HorasCapacidadRoute: typeof HorasCapacidadRoute
   HorasRegistroRoute: typeof HorasRegistroRoute
   ProyectosAsignacionesRoute: typeof ProyectosAsignacionesRoute
@@ -347,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCumplimientoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/horas/aprobaciones': {
+      id: '/horas/aprobaciones'
+      path: '/horas/aprobaciones'
+      fullPath: '/horas/aprobaciones'
+      preLoaderRoute: typeof HorasAprobacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/horas/capacidad': {
       id: '/horas/capacidad'
       path: '/horas/capacidad'
@@ -418,6 +438,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPeriodosRoute: AdminPeriodosRoute,
   DashboardCapacidadRoute: DashboardCapacidadRoute,
   DashboardCumplimientoRoute: DashboardCumplimientoRoute,
+  HorasAprobacionesRoute: HorasAprobacionesRoute,
   HorasCapacidadRoute: HorasCapacidadRoute,
   HorasRegistroRoute: HorasRegistroRoute,
   ProyectosAsignacionesRoute: ProyectosAsignacionesRoute,

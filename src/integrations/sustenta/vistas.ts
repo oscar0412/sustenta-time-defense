@@ -149,3 +149,30 @@ export interface ChecklistItem {
   cumple: boolean;
   detalle: string | null;
 }
+
+/** Unidad de aprobación: colaborador × proyecto × periodo. */
+export interface AprobacionFila {
+  id: string;
+  periodo_id: string;
+  anio: number;
+  mes: number;
+  periodo_estado: string | null;
+  colaborador_id: string;
+  colaborador: string | null;
+  documento: string | null;
+  jefe_id: string | null;
+  jefe: string | null;
+  proyecto_id: string;
+  proyecto_codigo: string | null;
+  proyecto_nombre: string | null;
+  empresa_id: string | null;
+  empresa: string | null;
+  estado: string | null;
+  horas_enviadas: number | null;
+  enviado_en: string | null;
+  resuelto_en: string | null;
+  comentario: string | null;
+  resuelto_por_nombre: string | null;
+  registros: number | null;
+  registros_sin_evidencia: number | null;
+}

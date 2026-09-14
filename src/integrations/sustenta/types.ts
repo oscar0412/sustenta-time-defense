@@ -65,6 +65,7 @@ export interface Periodo {
   observacion?: string | null;
   cerrado_en?: string | null;
   cerrado_por?: string | null;
+  exige_aprobacion?: boolean | null;
 }
 
 export interface Feriado {
