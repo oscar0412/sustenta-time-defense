@@ -298,7 +298,7 @@ function Liquidacion() {
               descripcion={etiquetaPeriodo(periodo?.anio, periodo?.mes)}
             />
             <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
+              <table className="w-full min-w-[860px] text-[13px]">
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="px-4 py-2 label-xs">Empresa</th>
