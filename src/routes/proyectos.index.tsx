@@ -126,7 +126,7 @@ function ProyectosPantalla() {
         estado: form.estado,
         descripcion_servicio: form.descripcion_servicio.trim() || null,
       };
-      if (hayBeneficio) fila["beneficio_receptor"] = form.beneficio_receptor.trim() || null;
+      fila["beneficio_receptor"] = form.beneficio_receptor.trim() || null;
 
       if (editando && editando !== "nuevo") {
         const { error: err } = await sustenta.from("hr_proyecto").update(fila).eq("id", editando.id);
@@ -360,14 +360,7 @@ function ProyectosPantalla() {
                   value={form.beneficio_receptor}
                   onChange={(e) => setForm({ ...form, beneficio_receptor: e.target.value })}
                   placeholder="Qué obtiene la vinculada"
-                  disabled={!hayBeneficio}
                 />
-                {!hayBeneficio ? (
-                  <p className="mt-1 text-[12px] text-accent">
-                    La base todavía no tiene la columna beneficio_receptor en la tabla de proyectos: al crearla,
-                    este campo se guarda solo. Por ahora el expediente usa el texto que genera la base.
-                  </p>
-                ) : null}
               </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
