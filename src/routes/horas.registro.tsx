@@ -442,12 +442,12 @@ function RegistroHoras() {
                 {registrosDelDia.length > 0 ? (
                   <div className="rounded-[6px] border border-border">
                     {registrosDelDia.map((r) => (
-                      <div
-                        key={r.id}
-                        className="flex items-center justify-between border-b border-border px-3 py-2 last:border-0"
-                      >
-                        <span className="text-[13px]">{r.descripcion ?? "—"}</span>
-                        <Num className="text-[13px] font-semibold">{Number(r.horas).toFixed(2)} h</Num>
+                      <div key={r.id} className="border-b border-border px-3 py-2 last:border-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[13px]">{r.descripcion ?? "—"}</span>
+                          <Num className="text-[13px] font-semibold">{Number(r.horas).toFixed(2)} h</Num>
+                        </div>
+                        <SustentosDelRegistro registroId={r.id} />
                       </div>
                     ))}
                   </div>
