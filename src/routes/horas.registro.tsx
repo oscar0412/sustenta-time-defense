@@ -628,7 +628,119 @@ function RegistroHoras() {
             </div>
           </div>
         </div>
+
+        <div className="border-t border-border px-4 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-[13px] font-semibold">Aprobación de mis horas</h3>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Tu jefatura directa revisa cada proyecto por separado.
+              </p>
+            </div>
+            <Button
+              variante="primario"
+              disabled={proyectosEnviables.length === 0}
+              onClick={() => {
+                setErrorBD(null);
+                setDialogoEnvio(true);
+              }}
+            >
+              <Send className="h-3.5 w-3.5" />
+              Enviar mes a aprobación
+            </Button>
+          </div>
+          {asignaciones.length === 0 ? (
+            <p className="mt-3 text-[12px] text-muted-foreground">No tienes proyectos asignados este mes.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {asignaciones.map((a) => {
+                const aprobacion = aprobacionDe(a.proyecto_id);
+                const estado = normalizarEstado(aprobacion?.estado);
+                return (
+                  <li
+                    key={a.asignacion_id}
+                    className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold">
+                        <Num>{a.proyecto_codigo}</Num> · {a.proyecto_nombre}
+                      </p>
+                      {estado === "observado" ? (
+                        <p className="mt-0.5 text-[11px] text-accent">
+                          {aprobacion?.comentario ?? "Observada sin comentario."}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Num className="text-[12px] font-semibold">
+                        {horasMinutos(aprobacion?.horas_enviadas ?? a.horas_registradas)}
+                      </Num>
+                      <Badge tono={TONO_ESTADO[estado]}>
+                        {estado === "enviado" ? <Lock className="h-3 w-3" /> : null}
+                        {ETIQUETA_ESTADO[estado]}
+                      </Badge>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </Card>
+
+      {dialogoEnvio ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4">
+          <div className="w-full max-w-lg rounded-[8px] bg-surface shadow-lg">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="text-[15px] font-semibold">
+                Enviar {format(mes, "MMMM yyyy", { locale: es })} a aprobación
+              </h3>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">
+                Se envía a tu jefatura directa, un envío por proyecto.
+              </p>
+            </div>
+            <div className="space-y-3 px-4 py-4">
+              <ul className="space-y-1.5">
+                {proyectosEnviables.map((a) => (
+                  <li key={a.asignacion_id} className="flex items-center justify-between text-[13px]">
+                    <span>
+                      <Num>{a.proyecto_codigo}</Num> · {a.proyecto_nombre}
+                    </span>
+                    <Num className="font-semibold">{horasMinutos(a.horas_registradas)}</Num>
+                  </li>
+                ))}
+                {proyectosEnviables.length === 0 ? (
+                  <li className="text-[13px] text-muted-foreground">No queda ningún proyecto por enviar.</li>
+                ) : null}
+              </ul>
+              <div className="flex justify-between border-t border-border pt-2 text-[13px] font-semibold">
+                <span>Total de horas del mes</span>
+                <Num>{horasMinutos(horasDelMes)}</Num>
+              </div>
+              <Aviso tono={registrosSinEvidencia.length > 0 ? "alerta" : "neutro"}>
+                <Num>{n(registrosSinEvidencia.length, 0)}</Num> de <Num>{n(registros.length, 0)}</Num> registros van
+                sin evidencia adjunta.
+              </Aviso>
+              <Aviso tono="acento" titulo="Una vez enviado">
+                No podrás modificar esas horas hasta que tu jefatura responda.
+              </Aviso>
+              {errorBD ? <Aviso tono="alerta" titulo="La base respondió">{errorBD}</Aviso> : null}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
+              <Button variante="secundario" onClick={() => setDialogoEnvio(false)}>Cancelar</Button>
+              <Button
+                variante="primario"
+                disabled={proyectosEnviables.length === 0}
+                cargando={enviarAprobacion.isPending}
+                onClick={() => enviarAprobacion.mutate()}
+              >
+                <Send className="h-3.5 w-3.5" />
+                Enviar a aprobación
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }
