@@ -1,15 +1,19 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Bell,
   ChevronDown,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ShieldCheck,
   Eye,
   CircleDot,
   AlertCircle,
   LogOut,
-
+  Menu,
+  X,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { gruposPorRol, ROLES } from "@/lib/nav";
