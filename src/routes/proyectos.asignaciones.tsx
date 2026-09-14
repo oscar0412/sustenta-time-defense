@@ -41,7 +41,27 @@ function Asignaciones() {
   const { periodoId, setPeriodoId, periodos } = usePeriodoSeleccionado();
   const [proyectoId, setProyectoId] = useState("");
   const [editando, setEditando] = useState<Asignacion | null>(null);
-  const [fechaFin, setFechaFin] = useState("");
+  const [form, setForm] = useState({
+    rol_proyecto: "",
+    dedicacion_pct: "100",
+    cobrable: true,
+    fecha_inicio: "",
+    fecha_fin: "",
+  });
+  const [errorEdicion, setErrorEdicion] = useState<string | null>(null);
+
+  function abrirEditor(a: Asignacion | null, finSugerido?: string) {
+    setErrorEdicion(null);
+    setEditando(a);
+    if (!a) return;
+    setForm({
+      rol_proyecto: a.rol_proyecto ?? a.rol ?? "",
+      dedicacion_pct: String(dedicacionPct(a)),
+      cobrable: a.cobrable !== false,
+      fecha_inicio: a.fecha_inicio ?? "",
+      fecha_fin: finSugerido ?? a.fecha_fin ?? "",
+    });
+  }
   const [errorBorrado, setErrorBorrado] = useState<{ id: string; mensaje: string } | null>(null);
 
   const proyectosQ = useQuery({
