@@ -350,6 +350,97 @@ function Periodos() {
           </div>
         </div>
       ) : null}
+
+      {apertura ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4">
+          <div className="w-full max-w-md rounded-[8px] bg-surface shadow-lg">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="text-[15px] font-semibold">Aperturar periodo</h3>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">
+                Solo se admite el mes en curso o el siguiente, y el periodo anterior debe estar cerrado.
+              </p>
+            </div>
+            <div className="grid gap-3 px-4 py-4 sm:grid-cols-2">
+              <div>
+                <label className="label-xs" htmlFor="anio">Año</label>
+                <input
+                  id="anio"
+                  className="field num mt-1 w-full"
+                  inputMode="numeric"
+                  value={anioNuevo}
+                  onChange={(e) => setAnioNuevo(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label-xs" htmlFor="mes">Mes</label>
+                <select id="mes" className="field mt-1 w-full" value={mesNuevo} onChange={(e) => setMesNuevo(e.target.value)}>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <option key={m} value={String(m)}>
+                      {etiquetaPeriodo(Number(anioNuevo), m)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {error ? (
+                <div className="sm:col-span-2">
+                  <Aviso tono="alerta" titulo="La base de datos respondió">{error}</Aviso>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
+              <Button variante="secundario" onClick={() => setApertura(false)}>Cancelar</Button>
+              <Button variante="primario" cargando={abrirPeriodo.isPending} onClick={() => abrirPeriodo.mutate()}>
+                <CalendarPlus className="h-3.5 w-3.5" />
+                Aperturar
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {reabriendo ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4">
+          <div className="w-full max-w-lg rounded-[8px] bg-surface shadow-lg">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="text-[15px] font-semibold">
+                Reabrir {etiquetaPeriodo(reabriendo.anio, reabriendo.mes)}
+              </h3>
+            </div>
+            <div className="space-y-3 px-4 py-4">
+              <Aviso tono="alerta" titulo="Consecuencia de reabrir">
+                Los expedientes definitivos de este periodo pasarán a estado superado y deberán regenerarse tras el
+                nuevo cierre.
+              </Aviso>
+              <div>
+                <label className="label-xs" htmlFor="motivo">Motivo de la reapertura (mínimo 15 caracteres)</label>
+                <textarea
+                  id="motivo"
+                  className="field mt-1 h-24 w-full"
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Explica por qué es necesario reabrir un periodo ya sellado."
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  <Num>{motivo.trim().length}</Num> / <Num>15</Num> caracteres
+                </p>
+              </div>
+              {error ? <Aviso tono="alerta" titulo="La base de datos respondió">{error}</Aviso> : null}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
+              <Button variante="secundario" onClick={() => setReabriendo(null)}>Cancelar</Button>
+              <Button
+                variante="primario"
+                disabled={motivo.trim().length < 15}
+                cargando={reabrir.isPending}
+                onClick={() => reabrir.mutate(reabriendo)}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reabrir periodo
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }
