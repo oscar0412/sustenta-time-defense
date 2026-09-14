@@ -11,7 +11,8 @@ import { Aviso, Badge, Button, Card, CardHeader, Etiqueta, Num, Vacio } from "@/
 import { useSesion } from "@/context/session";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
 import type { Actividad, Feriado, Incidencia, RegistroHora } from "@/integrations/sustenta/types";
-import type { AsignacionPeriodo, CapacidadFila, RegistroDetalle } from "@/integrations/sustenta/vistas";
+import type { AprobacionFila, AsignacionPeriodo, CapacidadFila, RegistroDetalle } from "@/integrations/sustenta/vistas";
+import { ETIQUETA_ESTADO, TONO_ESTADO, bloqueaRegistro, normalizarEstado } from "@/lib/aprobacion";
 import { fechaCorta, horasMinutos, n, pct, rangoMes } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
