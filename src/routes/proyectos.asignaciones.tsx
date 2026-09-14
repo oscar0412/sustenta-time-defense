@@ -130,17 +130,31 @@ function Asignaciones() {
   });
 
   const actualizar = useMutation({
-    mutationFn: async ({ id, fecha_fin }: { id: string; fecha_fin: string | null }) => {
-      const { error } = await sustenta.from("hr_asignacion").update({ fecha_fin }).eq("id", id);
+    mutationFn: async (id: string) => {
+      const { error } = await sustenta
+        .from("hr_asignacion")
+        .update({
+          rol_proyecto: form.rol_proyecto.trim() || null,
+          dedicacion_pct: Number(form.dedicacion_pct),
+          cobrable: form.cobrable,
+          fecha_inicio: form.fecha_inicio || null,
+          fecha_fin: form.fecha_fin || null,
+        })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Asignación actualizada");
       setEditando(null);
+      setErrorEdicion(null);
       setErrorBorrado(null);
-      qc.invalidateQueries({ queryKey: ["asignaciones-proyecto"] });
+      qc.invalidateQueries({ queryKey: ["asignaciones-proyecto-periodo"] });
     },
-    onError: (e) => toast.error(mensajeDeError(e)),
+    onError: (e) => {
+      const m = mensajeDeError(e);
+      setErrorEdicion(m);
+      toast.error(m);
+    },
   });
 
   return (
