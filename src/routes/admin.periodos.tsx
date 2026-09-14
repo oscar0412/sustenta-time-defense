@@ -8,6 +8,7 @@ import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Aviso, Badge, Button, Card, CardHeader, Num, Vacio } from "@/components/ui-kit";
 import { useSesion } from "@/context/session";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
+import type { Periodo } from "@/integrations/sustenta/types";
 import type { ChecklistItem, RegistroDetalle } from "@/integrations/sustenta/vistas";
 import { cn } from "@/lib/utils";
 import { codigoPeriodo, etiquetaPeriodo, n } from "@/lib/formato";
