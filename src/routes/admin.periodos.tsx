@@ -107,9 +107,69 @@ function Periodos() {
     },
   });
 
+  const abrirPeriodo = useMutation({
+    mutationFn: async () => {
+      const { error: err } = await sustenta.rpc("hr_abrir_periodo", {
+        p_anio: Number(anioNuevo),
+        p_mes: Number(mesNuevo),
+        p_usuario: colaborador?.id,
+      });
+      if (err) throw err;
+    },
+    onSuccess: () => {
+      setError(null);
+      setApertura(false);
+      toast.success("Periodo aperturado");
+      qc.invalidateQueries();
+    },
+    onError: (e) => {
+      const m = mensajeDeError(e);
+      setError(m);
+      toast.error(m);
+    },
+  });
+
+  const reabrir = useMutation({
+    mutationFn: async (p: Periodo) => {
+      const { data, error: err } = await sustenta.rpc("hr_reabrir_periodo", {
+        p_periodo: p.id,
+        p_usuario: colaborador?.id,
+        p_motivo: motivo,
+      });
+      if (err) throw err;
+      return typeof data === "string" ? data : JSON.stringify(data);
+    },
+    onSuccess: (texto) => {
+      setError(null);
+      setReabriendo(null);
+      setMotivo("");
+      setResultadoReapertura(texto);
+      toast.success("Periodo reabierto");
+      qc.invalidateQueries();
+    },
+    onError: (e) => {
+      const m = mensajeDeError(e);
+      setError(m);
+      toast.error(m);
+    },
+  });
+
   return (
     <AppShell>
       <PageHeader titulo="Periodos" descripcion="Estado de cada periodo y checklist previo al cierre." />
+
+      <div className="mb-4 flex justify-end">
+        <Button variante="primario" onClick={() => { setError(null); setApertura(true); }}>
+          <CalendarPlus className="h-3.5 w-3.5" />
+          Aperturar periodo
+        </Button>
+      </div>
+
+      {resultadoReapertura ? (
+        <div className="mb-4">
+          <Aviso tono="info" titulo="Resultado de la reapertura">{resultadoReapertura}</Aviso>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="mb-4">
