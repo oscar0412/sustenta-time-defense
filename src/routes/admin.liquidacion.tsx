@@ -49,7 +49,7 @@ function Liquidacion() {
     },
   });
 
-  const empresas = useMemo(() => {
+  const empresasTodas = useMemo(() => {
     const mapa = new Map<string, Agrupado>();
     for (const f of filasQ.data ?? []) {
       const a =
@@ -75,6 +75,19 @@ function Liquidacion() {
     }
     return [...mapa.values()].sort((x, y) => y.total - x.total);
   }, [filasQ.data]);
+
+  const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
+  const idsTodas = useMemo(() => empresasTodas.map((e) => e.empresa_id).join("|"), [empresasTodas]);
+
+  useEffect(() => {
+    setSeleccionadas(idsTodas ? idsTodas.split("|") : []);
+  }, [idsTodas]);
+
+  const empresas = useMemo(
+    () => empresasTodas.filter((e) => seleccionadas.includes(e.empresa_id)),
+    [empresasTodas, seleccionadas],
+  );
+  const todasMarcadas = empresasTodas.length > 0 && seleccionadas.length === empresasTodas.length;
 
   const totales = empresas.reduce(
     (acc, e) => ({
