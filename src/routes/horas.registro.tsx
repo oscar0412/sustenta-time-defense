@@ -241,13 +241,46 @@ function RegistroHoras() {
   const descripcionValida = descripcion.trim().length >= 10;
   const errores = asignacionesQ.error ?? registrosQ.error ?? capacidadQ.error ?? feriadosQ.error ?? incidenciasQ.error;
 
+  const aprobaciones = aprobacionesQ.data ?? [];
+  function aprobacionDe(proyectoId?: string | null) {
+    return aprobaciones.find((a) => a.proyecto_id === proyectoId) ?? null;
+  }
+  const aprobacionSeleccionada = aprobacionDe(asignacion?.proyecto_id);
+  const proyectoBloqueado = bloqueaRegistro(aprobacionSeleccionada?.estado);
+  const registrosSinEvidencia = registros.filter((r) => Number(r.sustentos ?? 0) === 0);
+  const horasDelMes = registros.reduce((s, r) => s + Number(r.horas ?? 0), 0);
+  const proyectosEnviables = asignaciones.filter((a) => !bloqueaRegistro(aprobacionDe(a.proyecto_id)?.estado));
+
   async function refrescarTablero() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["registros-detalle"] }),
       qc.invalidateQueries({ queryKey: ["mis-asignaciones-periodo"] }),
       qc.invalidateQueries({ queryKey: ["mi-capacidad"] }),
+      qc.invalidateQueries({ queryKey: ["mis-aprobaciones"] }),
     ]);
   }
+
+  const enviarAprobacion = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await sustenta.rpc("hr_enviar_aprobacion", {
+        p_colaborador: colaboradorId,
+        p_periodo: periodoId,
+      });
+      if (error) throw error;
+      return typeof data === "string" ? data : "Mes enviado a aprobación";
+    },
+    onSuccess: async (texto) => {
+      setErrorBD(null);
+      setDialogoEnvio(false);
+      toast.success(texto);
+      await refrescarTablero();
+    },
+    onError: (error) => {
+      const mensaje = mensajeDeError(error);
+      setErrorBD(mensaje);
+      toast.error(mensaje);
+    },
+  });
 
   const guardar = useMutation({
     mutationFn: async () => {
