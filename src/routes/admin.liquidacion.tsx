@@ -181,8 +181,17 @@ function Liquidacion() {
         titulo="Liquidación"
         descripcion="Importe a facturar a cada empresa vinculada del grupo, con su costo y margen."
       />
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <SelectorPeriodo periodos={periodos} valor={periodoId} onChange={setPeriodoId} />
+        <Button
+          variante="primario"
+          disabled={empresas.length === 0}
+          cargando={descargando}
+          onClick={() => void descargarExcel()}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Descargar liquidación
+        </Button>
       </div>
 
       {filasQ.error ? (
