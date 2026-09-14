@@ -64,22 +64,11 @@ function ProyectosPantalla() {
 
   const puedeEditar = rol === "administracion";
 
-  const beneficioQ = useQuery({
-    queryKey: ["proyecto-beneficio-columna"],
+  const proyectosQ = useQuery({
+    queryKey: ["proyectos"],
     enabled: sustentaConfigurado,
     queryFn: async () => {
-      const { error: err } = await sustenta.from("hr_proyecto").select("beneficio_receptor").limit(1);
-      return !err;
-    },
-  });
-  const hayBeneficio = beneficioQ.data === true;
-
-  const proyectosQ = useQuery({
-    queryKey: ["proyectos", hayBeneficio],
-    enabled: sustentaConfigurado && beneficioQ.data !== undefined,
-    queryFn: async () => {
-      const columnas = hayBeneficio ? "*" : "id,codigo,nombre,empresa_id,fecha_inicio,fecha_fin,margen_pct,estado,descripcion_servicio";
-      const { data, error: err } = await sustenta.from("hr_proyecto").select(columnas).order("codigo");
+      const { data, error: err } = await sustenta.from("hr_proyecto").select("*").order("codigo");
       if (err) throw err;
       return (data ?? []) as unknown as ProyectoFila[];
     },
