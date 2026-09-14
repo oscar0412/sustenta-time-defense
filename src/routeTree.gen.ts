@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminCatalogosRouteImport } from './routes/admin.catalogos'
+import { Route as AdminColaboradoresRouteImport } from './routes/admin.colaboradores'
 import { Route as AdminCostosRouteImport } from './routes/admin.costos'
 import { Route as AdminDefenseFileRouteImport } from './routes/admin.defense-file'
 import { Route as AdminIncidenciasRouteImport } from './routes/admin.incidencias'
@@ -34,6 +36,16 @@ const IndexRoute = IndexRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCatalogosRoute = AdminCatalogosRouteImport.update({
+  id: '/admin/catalogos',
+  path: '/admin/catalogos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminColaboradoresRoute = AdminColaboradoresRouteImport.update({
+  id: '/admin/colaboradores',
+  path: '/admin/colaboradores',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCostosRoute = AdminCostosRouteImport.update({
@@ -111,6 +123,8 @@ const AdminDefenseFileIdDocumentoRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin/catalogos': typeof AdminCatalogosRoute
+  '/admin/colaboradores': typeof AdminColaboradoresRoute
   '/admin/costos': typeof AdminCostosRoute
   '/admin/defense-file': typeof AdminDefenseFileRouteWithChildren
   '/admin/incidencias': typeof AdminIncidenciasRoute
@@ -129,6 +143,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin/catalogos': typeof AdminCatalogosRoute
+  '/admin/colaboradores': typeof AdminColaboradoresRoute
   '/admin/costos': typeof AdminCostosRoute
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
@@ -147,6 +163,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin/catalogos': typeof AdminCatalogosRoute
+  '/admin/colaboradores': typeof AdminColaboradoresRoute
   '/admin/costos': typeof AdminCostosRoute
   '/admin/defense-file': typeof AdminDefenseFileRouteWithChildren
   '/admin/incidencias': typeof AdminIncidenciasRoute
@@ -167,6 +185,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/admin/catalogos'
+    | '/admin/colaboradores'
     | '/admin/costos'
     | '/admin/defense-file'
     | '/admin/incidencias'
@@ -185,6 +205,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/admin/catalogos'
+    | '/admin/colaboradores'
     | '/admin/costos'
     | '/admin/incidencias'
     | '/admin/jornada'
@@ -202,6 +224,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/admin/catalogos'
+    | '/admin/colaboradores'
     | '/admin/costos'
     | '/admin/defense-file'
     | '/admin/incidencias'
@@ -221,6 +245,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  AdminCatalogosRoute: typeof AdminCatalogosRoute
+  AdminColaboradoresRoute: typeof AdminColaboradoresRoute
   AdminCostosRoute: typeof AdminCostosRoute
   AdminDefenseFileRoute: typeof AdminDefenseFileRouteWithChildren
   AdminIncidenciasRoute: typeof AdminIncidenciasRoute
@@ -249,6 +275,20 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/catalogos': {
+      id: '/admin/catalogos'
+      path: '/admin/catalogos'
+      fullPath: '/admin/catalogos'
+      preLoaderRoute: typeof AdminCatalogosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/colaboradores': {
+      id: '/admin/colaboradores'
+      path: '/admin/colaboradores'
+      fullPath: '/admin/colaboradores'
+      preLoaderRoute: typeof AdminColaboradoresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/costos': {
@@ -368,6 +408,8 @@ const AdminDefenseFileRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  AdminCatalogosRoute: AdminCatalogosRoute,
+  AdminColaboradoresRoute: AdminColaboradoresRoute,
   AdminCostosRoute: AdminCostosRoute,
   AdminDefenseFileRoute: AdminDefenseFileRouteWithChildren,
   AdminIncidenciasRoute: AdminIncidenciasRoute,

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, Info, Lock, XCircle } from "lucide-react";
+import { AlertTriangle, CalendarPlus, CheckCircle2, Info, Lock, RotateCcw, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
@@ -32,6 +32,13 @@ function Periodos() {
   const [observacion, setObservacion] = useState("");
   const [confirmacion, setConfirmacion] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const hoy = new Date();
+  const [apertura, setApertura] = useState(false);
+  const [anioNuevo, setAnioNuevo] = useState(String(hoy.getFullYear()));
+  const [mesNuevo, setMesNuevo] = useState(String(hoy.getMonth() + 1));
+  const [reabriendo, setReabriendo] = useState<Periodo | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [resultadoReapertura, setResultadoReapertura] = useState<string | null>(null);
 
   const periodo = periodos.find((p) => p.id === seleccionado) ?? periodoActivo ?? periodos[0] ?? null;
   const periodoId = periodo?.id ?? "";
