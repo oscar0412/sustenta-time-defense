@@ -579,3 +579,59 @@ function RegistroHoras() {
     </AppShell>
   );
 }
+
+interface SustentoFila {
+  id: string;
+  nombre_archivo: string | null;
+  tipo_documento: string | null;
+  tamano_bytes: number | null;
+  storage_path: string | null;
+  hash_sha256: string | null;
+}
+
+function SustentosDelRegistro({ registroId }: { registroId: string }) {
+  const q = useQuery({
+    queryKey: ["sustentos", registroId],
+    enabled: sustentaConfigurado,
+    queryFn: async () => {
+      const { data, error } = await sustenta
+        .from("hr_sustento")
+        .select("id, nombre_archivo, tipo_documento, tamano_bytes, storage_path, hash_sha256")
+        .eq("registro_id", registroId);
+      if (error) throw error;
+      return (data ?? []) as SustentoFila[];
+    },
+  });
+
+  const sustentos = q.data ?? [];
+  if (sustentos.length === 0) return null;
+
+  async function descargar(s: SustentoFila) {
+    if (!s.storage_path) return;
+    const { data, error } = await sustenta.storage.from("sustentos").createSignedUrl(s.storage_path, 60);
+    if (error || !data?.signedUrl) {
+      toast.error(mensajeDeError(error));
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
+
+  return (
+    <ul className="mt-1.5 space-y-1">
+      {sustentos.map((s) => (
+        <li key={s.id} className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <Paperclip className="h-3 w-3 shrink-0" />
+          <button
+            type="button"
+            className="truncate underline underline-offset-2 hover:text-foreground"
+            onClick={() => void descargar(s)}
+            title={s.hash_sha256 ? `SHA-256: ${s.hash_sha256}` : undefined}
+          >
+            {s.nombre_archivo ?? "Sustento"}
+          </button>
+          {s.tamano_bytes ? <Num className="tabular-nums">{Math.round(s.tamano_bytes / 1024)} KB</Num> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
