@@ -402,10 +402,10 @@ function RegistroHoras() {
 
               {soloLectura ? (
                 <div className="mt-3">
-                  <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "Mes cerrado: solo lectura" : "Mes sin periodo abierto"}>
+                  <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "Mes cerrado: solo lectura" : "Periodo no aperturado"}>
                     {mesCerrado
                       ? `${format(mes, "MMMM yyyy", { locale: es })} está cerrado. Sus registros quedan sellados como evidencia; cualquier corrección exige reabrir el periodo desde Administración.`
-                      : `No existe un periodo creado para ${format(mes, "MMMM yyyy", { locale: es })}, así que no admite registros.`}
+                      : `El periodo ${format(mes, "yyyy-MM")} no ha sido aperturado. Administración debe abrirlo antes de registrar.`}
                   </Aviso>
                 </div>
               ) : null}
@@ -429,10 +429,10 @@ function RegistroHoras() {
             />
             {soloLectura ? (
               <div className="p-4">
-                <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "El periodo está cerrado" : "Mes sin periodo abierto"}>
+                <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "El periodo está cerrado" : "Periodo no aperturado"}>
                   {mesCerrado
                     ? "No se admiten nuevos registros ni modificaciones sobre un mes cerrado. Para corregir horas de este periodo, Administración debe reabrirlo."
-                    : "Este mes no tiene un periodo creado, por eso no admite registros."}
+                    : `El periodo ${format(mes, "yyyy-MM")} no ha sido aperturado. Administración debe abrirlo antes de registrar: hasta entonces no se admiten registros en este mes.`}
                 </Aviso>
               </div>
             ) : !dia ? (
