@@ -3,7 +3,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { eachDayOfInterval, endOfMonth, format, isAfter, isBefore, parseISO, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { AlertTriangle, CalendarDays, Check, Circle, Clock3, Paperclip, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, CalendarDays, Check, Circle, Clock3, Lock, Paperclip, Send, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
