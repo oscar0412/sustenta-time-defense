@@ -258,13 +258,24 @@ function RegistroHoras() {
       const registro = data as RegistroHora;
 
       if (archivo) {
-        const ruta = `${colaboradorId}/${iso(dia)}/${Date.now()}-${archivo.name}`;
-        const up = await sustenta.storage.from("sustentos").upload(ruta, archivo);
+        const f = dia;
+        const ruta = `horas/${f.getFullYear()}/${String(f.getMonth() + 1).padStart(2, "0")}/${registro.id}-${archivo.name}`;
+        const up = await sustenta.storage
+          .from("sustentos")
+          .upload(ruta, archivo, { upsert: true, contentType: archivo.type || "application/octet-stream" });
         if (up.error) throw up.error;
+
+        const buffer = await archivo.arrayBuffer();
+        const digest = await crypto.subtle.digest("SHA-256", buffer);
+        const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
         const { error: errSustento } = await sustenta.from("hr_sustento").insert({
-          registro_hora_id: registro.id,
-          archivo: ruta,
-          nombre: archivo.name,
+          registro_id: registro.id,
+          nombre_archivo: archivo.name,
+          tipo_documento: archivo.type || archivo.name.split(".").pop() || "archivo",
+          hash_sha256: hash,
+          tamano_bytes: archivo.size,
+          storage_path: ruta,
         });
         if (errSustento) throw errSustento;
       }
@@ -391,10 +402,10 @@ function RegistroHoras() {
 
               {soloLectura ? (
                 <div className="mt-3">
-                  <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "Mes cerrado: solo lectura" : "Mes sin periodo abierto"}>
+                  <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "Mes cerrado: solo lectura" : "Periodo no aperturado"}>
                     {mesCerrado
                       ? `${format(mes, "MMMM yyyy", { locale: es })} está cerrado. Sus registros quedan sellados como evidencia; cualquier corrección exige reabrir el periodo desde Administración.`
-                      : `No existe un periodo creado para ${format(mes, "MMMM yyyy", { locale: es })}, así que no admite registros.`}
+                      : `El periodo ${format(mes, "yyyy-MM")} no ha sido aperturado. Administración debe abrirlo antes de registrar.`}
                   </Aviso>
                 </div>
               ) : null}
@@ -418,10 +429,10 @@ function RegistroHoras() {
             />
             {soloLectura ? (
               <div className="p-4">
-                <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "El periodo está cerrado" : "Mes sin periodo abierto"}>
+                <Aviso tono={mesCerrado ? "info" : "alerta"} titulo={mesCerrado ? "El periodo está cerrado" : "Periodo no aperturado"}>
                   {mesCerrado
                     ? "No se admiten nuevos registros ni modificaciones sobre un mes cerrado. Para corregir horas de este periodo, Administración debe reabrirlo."
-                    : "Este mes no tiene un periodo creado, por eso no admite registros."}
+                    : `El periodo ${format(mes, "yyyy-MM")} no ha sido aperturado. Administración debe abrirlo antes de registrar: hasta entonces no se admiten registros en este mes.`}
                 </Aviso>
               </div>
             ) : !dia ? (
@@ -431,12 +442,12 @@ function RegistroHoras() {
                 {registrosDelDia.length > 0 ? (
                   <div className="rounded-[6px] border border-border">
                     {registrosDelDia.map((r) => (
-                      <div
-                        key={r.id}
-                        className="flex items-center justify-between border-b border-border px-3 py-2 last:border-0"
-                      >
-                        <span className="text-[13px]">{r.descripcion ?? "—"}</span>
-                        <Num className="text-[13px] font-semibold">{Number(r.horas).toFixed(2)} h</Num>
+                      <div key={r.id} className="border-b border-border px-3 py-2 last:border-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[13px]">{r.descripcion ?? "—"}</span>
+                          <Num className="text-[13px] font-semibold">{Number(r.horas).toFixed(2)} h</Num>
+                        </div>
+                        <SustentosDelRegistro registroId={r.id} />
                       </div>
                     ))}
                   </div>
@@ -566,5 +577,61 @@ function RegistroHoras() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+interface SustentoFila {
+  id: string;
+  nombre_archivo: string | null;
+  tipo_documento: string | null;
+  tamano_bytes: number | null;
+  storage_path: string | null;
+  hash_sha256: string | null;
+}
+
+function SustentosDelRegistro({ registroId }: { registroId: string }) {
+  const q = useQuery({
+    queryKey: ["sustentos", registroId],
+    enabled: sustentaConfigurado,
+    queryFn: async () => {
+      const { data, error } = await sustenta
+        .from("hr_sustento")
+        .select("id, nombre_archivo, tipo_documento, tamano_bytes, storage_path, hash_sha256")
+        .eq("registro_id", registroId);
+      if (error) throw error;
+      return (data ?? []) as SustentoFila[];
+    },
+  });
+
+  const sustentos = q.data ?? [];
+  if (sustentos.length === 0) return null;
+
+  async function descargar(s: SustentoFila) {
+    if (!s.storage_path) return;
+    const { data, error } = await sustenta.storage.from("sustentos").createSignedUrl(s.storage_path, 60);
+    if (error || !data?.signedUrl) {
+      toast.error(mensajeDeError(error));
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
+
+  return (
+    <ul className="mt-1.5 space-y-1">
+      {sustentos.map((s) => (
+        <li key={s.id} className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <Paperclip className="h-3 w-3 shrink-0" />
+          <button
+            type="button"
+            className="truncate underline underline-offset-2 hover:text-foreground"
+            onClick={() => void descargar(s)}
+            title={s.hash_sha256 ? `SHA-256: ${s.hash_sha256}` : undefined}
+          >
+            {s.nombre_archivo ?? "Sustento"}
+          </button>
+          {s.tamano_bytes ? <Num className="tabular-nums">{Math.round(s.tamano_bytes / 1024)} KB</Num> : null}
+        </li>
+      ))}
+    </ul>
   );
 }

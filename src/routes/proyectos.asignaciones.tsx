@@ -41,7 +41,27 @@ function Asignaciones() {
   const { periodoId, setPeriodoId, periodos } = usePeriodoSeleccionado();
   const [proyectoId, setProyectoId] = useState("");
   const [editando, setEditando] = useState<Asignacion | null>(null);
-  const [fechaFin, setFechaFin] = useState("");
+  const [form, setForm] = useState({
+    rol_proyecto: "",
+    dedicacion_pct: "100",
+    cobrable: true,
+    fecha_inicio: "",
+    fecha_fin: "",
+  });
+  const [errorEdicion, setErrorEdicion] = useState<string | null>(null);
+
+  function abrirEditor(a: Asignacion | null, finSugerido?: string) {
+    setErrorEdicion(null);
+    setEditando(a);
+    if (!a) return;
+    setForm({
+      rol_proyecto: a.rol_proyecto ?? a.rol ?? "",
+      dedicacion_pct: String(dedicacionPct(a)),
+      cobrable: a.cobrable !== false,
+      fecha_inicio: a.fecha_inicio ?? "",
+      fecha_fin: finSugerido ?? a.fecha_fin ?? "",
+    });
+  }
   const [errorBorrado, setErrorBorrado] = useState<{ id: string; mensaje: string } | null>(null);
 
   const proyectosQ = useQuery({
@@ -110,17 +130,31 @@ function Asignaciones() {
   });
 
   const actualizar = useMutation({
-    mutationFn: async ({ id, fecha_fin }: { id: string; fecha_fin: string | null }) => {
-      const { error } = await sustenta.from("hr_asignacion").update({ fecha_fin }).eq("id", id);
+    mutationFn: async (id: string) => {
+      const { error } = await sustenta
+        .from("hr_asignacion")
+        .update({
+          rol_proyecto: form.rol_proyecto.trim() || null,
+          dedicacion_pct: Number(form.dedicacion_pct),
+          cobrable: form.cobrable,
+          fecha_inicio: form.fecha_inicio || null,
+          fecha_fin: form.fecha_fin || null,
+        })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Asignación actualizada");
       setEditando(null);
+      setErrorEdicion(null);
       setErrorBorrado(null);
-      qc.invalidateQueries({ queryKey: ["asignaciones-proyecto"] });
+      qc.invalidateQueries({ queryKey: ["asignaciones-proyecto-periodo"] });
     },
-    onError: (e) => toast.error(mensajeDeError(e)),
+    onError: (e) => {
+      const m = mensajeDeError(e);
+      setErrorEdicion(m);
+      toast.error(m);
+    },
   });
 
   return (
@@ -165,8 +199,8 @@ function Asignaciones() {
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-border">
-                {["Colaborador", "Rol", "Dedicación", "Vigencia", "Cobrabilidad", "Capacidad usada", ""].map((h) => (
-                  <th key={h} className="label-xs px-4 py-2">
+                {["Colaborador", "Rol", "Dedicación", "Vigencia", "Cobrabilidad", "Capacidad usada", "Acciones"].map((h, i) => (
+                  <th key={`${h}-${i}`} className="label-xs px-4 py-2">
                     {h}
                   </th>
                 ))}
@@ -209,10 +243,7 @@ function Asignaciones() {
                         <Button
                           variante="fantasma"
                           aria-label="Editar"
-                          onClick={() => {
-                            setEditando(a);
-                            setFechaFin(a.fecha_fin ?? "");
-                          }}
+                          onClick={() => abrirEditor(a)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -243,11 +274,10 @@ function Asignaciones() {
                 variante="primario"
                 onClick={() => {
                   const a = asignaciones.find((x) => x.id === errorBorrado.id) ?? null;
-                  setEditando(a);
-                  setFechaFin(new Date().toISOString().slice(0, 10));
+                  abrirEditor(a, new Date().toISOString().slice(0, 10));
                 }}
               >
-                Cerrar la asignación anticipadamente
+                Cerrar anticipadamente
               </Button>
             </div>
           </Aviso>
@@ -268,17 +298,59 @@ function Asignaciones() {
             />
             <div className="space-y-4 p-4">
               <div>
-                <Etiqueta>Fecha de fin de la asignación</Etiqueta>
+                <Etiqueta>Rol en el proyecto</Etiqueta>
                 <input
-                  type="date"
-                  className="field num mt-1"
-                  value={fechaFin}
-                  onChange={(e) => setFechaFin(e.target.value)}
+                  className="field mt-1 w-full"
+                  value={form.rol_proyecto}
+                  onChange={(e) => setForm({ ...form, rol_proyecto: e.target.value })}
                 />
-                <p className="mt-1 text-[12px] text-muted-foreground">
-                  Cerrar la asignación conserva las horas ya registradas y evita nuevos registros.
-                </p>
               </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Etiqueta>Dedicación (%)</Etiqueta>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    className="field num mt-1 w-full"
+                    value={form.dedicacion_pct}
+                    onChange={(e) => setForm({ ...form, dedicacion_pct: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Etiqueta>Cobrabilidad</Etiqueta>
+                  <select
+                    className="field mt-1 w-full"
+                    value={form.cobrable ? "si" : "no"}
+                    onChange={(e) => setForm({ ...form, cobrable: e.target.value === "si" })}
+                  >
+                    <option value="si">Cobrable</option>
+                    <option value="no">No cobrable</option>
+                  </select>
+                </div>
+                <div>
+                  <Etiqueta>Fecha de inicio</Etiqueta>
+                  <input
+                    type="date"
+                    className="field num mt-1 w-full"
+                    value={form.fecha_inicio}
+                    onChange={(e) => setForm({ ...form, fecha_inicio: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Etiqueta>Fecha de fin</Etiqueta>
+                  <input
+                    type="date"
+                    className="field num mt-1 w-full"
+                    value={form.fecha_fin}
+                    onChange={(e) => setForm({ ...form, fecha_fin: e.target.value })}
+                  />
+                </div>
+              </div>
+              <p className="text-[12px] text-muted-foreground">
+                Cerrar la asignación conserva las horas ya registradas y evita nuevos registros.
+              </p>
+              {errorEdicion ? <Aviso tono="alerta" titulo="La base de datos respondió">{errorEdicion}</Aviso> : null}
               <div className="flex justify-end gap-2">
                 <Button variante="secundario" onClick={() => setEditando(null)}>
                   Cancelar
@@ -286,7 +358,7 @@ function Asignaciones() {
                 <Button
                   variante="primario"
                   cargando={actualizar.isPending}
-                  onClick={() => actualizar.mutate({ id: editando.id, fecha_fin: fechaFin || null })}
+                  onClick={() => actualizar.mutate(editando.id)}
                 >
                   Guardar
                 </Button>
