@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { eachDayOfInterval, endOfMonth, format, isAfter, isBefore, parseISO, startOfMonth } from "date-fns";
+import { eachDayOfInterval, endOfMonth, endOfWeek, format, parseISO, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { AlertTriangle, CalendarDays, Check, Circle, Clock3, Lock, Paperclip, Send, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -11,8 +11,15 @@ import { Aviso, Badge, Button, Card, CardHeader, Etiqueta, Num, Vacio } from "@/
 import { useSesion } from "@/context/session";
 import { mensajeDeError, sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
 import type { Actividad, Feriado, Incidencia, RegistroHora } from "@/integrations/sustenta/types";
-import type { AprobacionFila, AsignacionPeriodo, CapacidadFila, RegistroDetalle } from "@/integrations/sustenta/vistas";
-import { ETIQUETA_ESTADO, TONO_ESTADO, bloqueaRegistro, normalizarEstado } from "@/lib/aprobacion";
+import type { AsignacionPeriodo, CapacidadFila, RegistroDetalle } from "@/integrations/sustenta/vistas";
+import {
+  ETIQUETA_ESTADO,
+  PUNTO_ESTADO,
+  TONO_ESTADO,
+  bloqueaRegistro,
+  normalizarEstado,
+  type EstadoAprobacion,
+} from "@/lib/aprobacion";
 import { fechaCorta, horasMinutos, n, pct, rangoMes } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +88,7 @@ function RegistroHoras() {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [errorBD, setErrorBD] = useState<string | null>(null);
   const [dialogoEnvio, setDialogoEnvio] = useState(false);
+  const [diasSeleccionados, setDiasSeleccionados] = useState<string[]>([]);
 
   const asignacionesQ = useQuery({
     queryKey: ["mis-asignaciones-periodo", colaboradorId, periodoId],
@@ -172,20 +180,6 @@ function RegistroHoras() {
     },
   });
 
-  const aprobacionesQ = useQuery({
-    queryKey: ["mis-aprobaciones", colaboradorId, periodoId],
-    enabled: habilitado,
-    queryFn: async () => {
-      if (!colaboradorId || !periodoId) return [];
-      const { data, error } = await sustenta
-        .from("hr_v_aprobacion")
-        .select("*")
-        .eq("colaborador_id", colaboradorId)
-        .eq("periodo_id", periodoId);
-      if (error) throw error;
-      return (data ?? []) as AprobacionFila[];
-    },
-  });
 
   const asignaciones = asignacionesQ.data ?? [];
   const registros = registrosQ.data ?? [];
@@ -242,37 +236,65 @@ function RegistroHoras() {
   const descripcionValida = descripcion.trim().length >= 10;
   const errores = asignacionesQ.error ?? registrosQ.error ?? capacidadQ.error ?? feriadosQ.error ?? incidenciasQ.error;
 
-  const aprobaciones = aprobacionesQ.data ?? [];
-  function aprobacionDe(proyectoId?: string | null) {
-    return aprobaciones.find((a) => a.proyecto_id === proyectoId) ?? null;
+  function estadoDelDia(fecha: string): EstadoAprobacion | null {
+    const delDia = registros.filter((r) => r.fecha === fecha);
+    if (delDia.length === 0) return null;
+    const estados = delDia.map((r) => normalizarEstado(r.estado_aprobacion));
+    if (estados.includes("observado")) return "observado";
+    if (estados.includes("sin_enviar")) return "sin_enviar";
+    if (estados.includes("enviado")) return "enviado";
+    return "aprobado";
   }
-  const aprobacionSeleccionada = aprobacionDe(asignacion?.proyecto_id);
-  const proyectoBloqueado = bloqueaRegistro(aprobacionSeleccionada?.estado);
+
+  const registrosDiaProyecto =
+    fechaSeleccionada && asignacion
+      ? registros.filter((r) => r.fecha === fechaSeleccionada && r.proyecto_id === asignacion.proyecto_id)
+      : [];
+  const diaBloqueado = registrosDiaProyecto.some((r) => bloqueaRegistro(r.estado_aprobacion));
+  const estadoDiaProyecto = registrosDiaProyecto.some((r) => normalizarEstado(r.estado_aprobacion) === "aprobado")
+    ? "aprobado"
+    : registrosDiaProyecto.some((r) => normalizarEstado(r.estado_aprobacion) === "enviado")
+      ? "enviado"
+      : registrosDiaProyecto.some((r) => normalizarEstado(r.estado_aprobacion) === "observado")
+        ? "observado"
+        : "sin_enviar";
+  const comentarioDia =
+    registrosDiaProyecto.find((r) => normalizarEstado(r.estado_aprobacion) === "observado")?.comentario_aprobacion ??
+    null;
+
   const registrosSinEvidencia = registros.filter((r) => Number(r.sustentos ?? 0) === 0);
   const horasDelMes = registros.reduce((s, r) => s + Number(r.horas ?? 0), 0);
-  const proyectosEnviables = asignaciones.filter((a) => !bloqueaRegistro(aprobacionDe(a.proyecto_id)?.estado));
+  const enviables = registros.filter((r) => normalizarEstado(r.estado_aprobacion) === "sin_enviar");
+  const marcados = diasSeleccionados.filter((id) => enviables.some((r) => r.id === id));
+  const registrosMarcados = registros.filter((r) => marcados.includes(r.id));
+  const marcadosSinEvidencia = registrosMarcados.filter((r) => Number(r.sustentos ?? 0) === 0).length;
+
+  function seleccionarSemana() {
+    const referencia = fechaSeleccionada ? parseISO(fechaSeleccionada) : new Date();
+    const desde = iso(startOfWeek(referencia, { weekStartsOn: 1 }));
+    const hasta = iso(endOfWeek(referencia, { weekStartsOn: 1 }));
+    setDiasSeleccionados(enviables.filter((r) => r.fecha >= desde && r.fecha <= hasta).map((r) => r.id));
+  }
 
   async function refrescarTablero() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["registros-detalle"] }),
       qc.invalidateQueries({ queryKey: ["mis-asignaciones-periodo"] }),
       qc.invalidateQueries({ queryKey: ["mi-capacidad"] }),
-      qc.invalidateQueries({ queryKey: ["mis-aprobaciones"] }),
+      qc.invalidateQueries({ queryKey: ["alertas"] }),
     ]);
   }
 
-  const enviarAprobacion = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await sustenta.rpc("hr_enviar_aprobacion", {
-        p_colaborador: colaboradorId,
-        p_periodo: periodoId,
-      });
+  const enviarRegistros = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { data, error } = await sustenta.rpc("hr_enviar_registros", { p_ids: ids });
       if (error) throw error;
-      return typeof data === "string" ? data : "Mes enviado a aprobación";
+      return typeof data === "string" ? data : `${ids.length} días enviados a aprobación`;
     },
     onSuccess: async (texto) => {
       setErrorBD(null);
       setDialogoEnvio(false);
+      setDiasSeleccionados([]);
       toast.success(texto);
       await refrescarTablero();
     },
@@ -475,7 +497,15 @@ function RegistroHoras() {
                   >
                     <div className="flex items-start justify-between gap-1">
                       <Num className="text-[12px] font-semibold">{format(dia, "d")}</Num>
-                      {completo ? <span className="h-2 w-2 rounded-full bg-success" title="Carga completa" /> : parcial ? <span className="h-2 w-2 rounded-full bg-warning" title="Carga parcial" /> : null}
+                      <span className="flex items-center gap-1">
+                        {estadoDelDia(fecha) ? (
+                          <span
+                            className={cn("h-2 w-2 rounded-full", PUNTO_ESTADO[estadoDelDia(fecha)!])}
+                            title={`Aprobación: ${ETIQUETA_ESTADO[estadoDelDia(fecha)!]}`}
+                          />
+                        ) : null}
+                        {completo ? <span className="h-2 w-2 rounded-full bg-success" title="Carga completa" /> : parcial ? <span className="h-2 w-2 rounded-full bg-warning" title="Carga parcial" /> : null}
+                      </span>
                     </div>
                     {laborable ? <Num className={cn("mt-2 block text-[12px] font-bold", colorSeleccionado.texto)}>{n(asignacion?.dedicacion_pct, 0)}%</Num> : null}
                     {incidencia ? <span className="mt-2 block text-[10px] font-bold">{abreviarIncidencia(incidencia.tipo)}</span> : null}
@@ -513,15 +543,15 @@ function RegistroHoras() {
                     ))}
                   </select>
                 </div>
-                {normalizarEstado(aprobacionSeleccionada?.estado) === "observado" ? (
-                  <Aviso tono="acento" titulo="Tu jefatura observó estas horas">
-                    {aprobacionSeleccionada?.comentario ?? "Sin comentario registrado."}
+                {estadoDiaProyecto === "observado" ? (
+                  <Aviso tono="acento" titulo="Tu jefatura observó este día">
+                    {comentarioDia ?? "Sin comentario registrado."}
                   </Aviso>
                 ) : null}
-                {proyectoBloqueado ? (
-                  <Aviso tono="alerta" titulo={`Horas ${ETIQUETA_ESTADO[normalizarEstado(aprobacionSeleccionada?.estado)].toLowerCase()} a la jefatura`}>
-                    Un proyecto enviado o aprobado no admite cambios ni horas nuevas. Espera la respuesta de tu
-                    jefatura para poder corregir.
+                {diaBloqueado ? (
+                  <Aviso tono="alerta" titulo={`Día ${ETIQUETA_ESTADO[estadoDiaProyecto].toLowerCase()}`}>
+                    Un día enviado o aprobado no admite cambios. Espera la respuesta de tu jefatura para poder
+                    corregir.
                   </Aviso>
                 ) : (
                   <>
@@ -567,7 +597,9 @@ function RegistroHoras() {
               <CardHeader titulo="Registros cargados" descripcion={`${horasMinutos(registradoDelDia(fechaSeleccionada ?? ""))} en el día`} />
               {registrosDelDia.length === 0 ? <Vacio mensaje="Todavía no hay horas registradas este día." /> : (
                 <div className="divide-y divide-border">
-                  {registrosDelDia.map((registro) => (
+                  {registrosDelDia.map((registro) => {
+                    const estadoRegistro = normalizarEstado(registro.estado_aprobacion);
+                    return (
                     <div key={registro.id} className="p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -578,12 +610,21 @@ function RegistroHoras() {
                       </div>
                       <div className="mt-2 flex items-end justify-between gap-2">
                         <SustentosDelRegistro registroId={registro.id} />
-                        <Button variante="fantasma" className="h-7 px-2 text-[11px] text-accent" cargando={eliminar.isPending && eliminar.variables === registro.id} onClick={() => eliminar.mutate(registro.id)}>
-                          <Trash2 className="h-3.5 w-3.5" /> Eliminar
-                        </Button>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge tono={TONO_ESTADO[estadoRegistro]}>
+                            {estadoRegistro === "enviado" ? <Lock className="h-3 w-3" /> : null}
+                            {ETIQUETA_ESTADO[estadoRegistro]}
+                          </Badge>
+                          {bloqueaRegistro(registro.estado_aprobacion) ? null : (
+                            <Button variante="fantasma" className="h-7 px-2 text-[11px] text-accent" cargando={eliminar.isPending && eliminar.variables === registro.id} onClick={() => eliminar.mutate(registro.id)}>
+                              <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Card>
@@ -632,58 +673,87 @@ function RegistroHoras() {
         <div className="border-t border-border px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-[13px] font-semibold">Aprobación de mis horas</h3>
+              <h3 className="text-[13px] font-semibold">Enviar días a aprobación</h3>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Tu jefatura directa revisa cada proyecto por separado.
+                Elige los días que ya están completos. Tu jefatura revisa cada día con su evidencia.
               </p>
             </div>
-            <Button
-              variante="primario"
-              disabled={proyectosEnviables.length === 0}
-              onClick={() => {
-                setErrorBD(null);
-                setDialogoEnvio(true);
-              }}
-            >
-              <Send className="h-3.5 w-3.5" />
-              Enviar mes a aprobación
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variante="secundario" onClick={() => setDiasSeleccionados(enviables.map((r) => r.id))}>
+                Seleccionar todos los sin enviar
+              </Button>
+              <Button variante="secundario" onClick={seleccionarSemana}>Seleccionar la semana</Button>
+              <Button
+                variante="primario"
+                disabled={marcados.length === 0}
+                onClick={() => {
+                  setErrorBD(null);
+                  setDialogoEnvio(true);
+                }}
+              >
+                <Send className="h-3.5 w-3.5" />
+                Enviar {marcados.length > 0 ? `(${marcados.length})` : ""}
+              </Button>
+            </div>
           </div>
-          {asignaciones.length === 0 ? (
-            <p className="mt-3 text-[12px] text-muted-foreground">No tienes proyectos asignados este mes.</p>
+          {registros.length === 0 ? (
+            <p className="mt-3 text-[12px] text-muted-foreground">Todavía no tienes días registrados este mes.</p>
           ) : (
-            <ul className="mt-3 space-y-2">
-              {asignaciones.map((a) => {
-                const aprobacion = aprobacionDe(a.proyecto_id);
-                const estado = normalizarEstado(aprobacion?.estado);
-                return (
-                  <li
-                    key={a.asignacion_id}
-                    className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-0"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-[12px] font-semibold">
-                        <Num>{a.proyecto_codigo}</Num> · {a.proyecto_nombre}
-                      </p>
-                      {estado === "observado" ? (
-                        <p className="mt-0.5 text-[11px] text-accent">
-                          {aprobacion?.comentario ?? "Observada sin comentario."}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Num className="text-[12px] font-semibold">
-                        {horasMinutos(aprobacion?.horas_enviadas ?? a.horas_registradas)}
-                      </Num>
-                      <Badge tono={TONO_ESTADO[estado]}>
-                        {estado === "enviado" ? <Lock className="h-3 w-3" /> : null}
-                        {ETIQUETA_ESTADO[estado]}
-                      </Badge>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[620px] text-[12px]">
+                <thead>
+                  <tr className="border-b border-border text-left text-muted-foreground">
+                    <th className="w-8 py-2"></th>
+                    <th className="py-2 pr-3">Día</th>
+                    <th className="py-2 pr-3">Proyecto</th>
+                    <th className="py-2 pr-3 text-right">Horas</th>
+                    <th className="py-2 pr-3 text-right">Sustentos</th>
+                    <th className="py-2">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {registros.map((r) => {
+                    const estado = normalizarEstado(r.estado_aprobacion);
+                    const sustentos = Number(r.sustentos ?? 0);
+                    return (
+                      <tr key={r.id} className="border-b border-border last:border-0">
+                        <td className="py-2">
+                          {estado === "sin_enviar" ? (
+                            <input
+                              type="checkbox"
+                              aria-label={`Seleccionar ${r.fecha} ${r.proyecto_codigo ?? ""}`}
+                              checked={diasSeleccionados.includes(r.id)}
+                              onChange={(e) =>
+                                setDiasSeleccionados((prev) =>
+                                  e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id),
+                                )
+                              }
+                            />
+                          ) : null}
+                        </td>
+                        <td className="py-2 pr-3"><Num className="font-semibold">{fechaCorta(r.fecha)}</Num></td>
+                        <td className="py-2 pr-3">
+                          <Num>{r.proyecto_codigo ?? "—"}</Num> · {r.proyecto_nombre ?? "—"}
+                          {estado === "observado" && r.comentario_aprobacion ? (
+                            <p className="mt-0.5 text-[11px] text-accent">{r.comentario_aprobacion}</p>
+                          ) : null}
+                        </td>
+                        <td className="py-2 pr-3 text-right"><Num>{horasMinutos(r.horas)}</Num></td>
+                        <td className={cn("py-2 pr-3 text-right", sustentos === 0 && "font-bold text-warning")}>
+                          <Num>{n(sustentos, 0)}</Num>
+                        </td>
+                        <td className="py-2">
+                          <Badge tono={TONO_ESTADO[estado]}>
+                            {estado === "enviado" ? <Lock className="h-3 w-3" /> : null}
+                            {ETIQUETA_ESTADO[estado]}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </Card>
@@ -693,36 +763,33 @@ function RegistroHoras() {
           <div className="w-full max-w-lg rounded-[8px] bg-surface shadow-lg">
             <div className="border-b border-border px-4 py-3">
               <h3 className="text-[15px] font-semibold">
-                Enviar {format(mes, "MMMM yyyy", { locale: es })} a aprobación
+                Enviar <Num>{n(marcados.length, 0)}</Num> días a aprobación
               </h3>
               <p className="mt-0.5 text-[12px] text-muted-foreground">
-                Se envía a tu jefatura directa, un envío por proyecto.
+                Se envían a tu jefatura directa, día por día.
               </p>
             </div>
             <div className="space-y-3 px-4 py-4">
-              <ul className="space-y-1.5">
-                {proyectosEnviables.map((a) => (
-                  <li key={a.asignacion_id} className="flex items-center justify-between text-[13px]">
+              <ul className="max-h-56 space-y-1.5 overflow-y-auto">
+                {registrosMarcados.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between text-[13px]">
                     <span>
-                      <Num>{a.proyecto_codigo}</Num> · {a.proyecto_nombre}
+                      <Num>{fechaCorta(r.fecha)}</Num> · <Num>{r.proyecto_codigo}</Num>
                     </span>
-                    <Num className="font-semibold">{horasMinutos(a.horas_registradas)}</Num>
+                    <Num className="font-semibold">{horasMinutos(r.horas)}</Num>
                   </li>
                 ))}
-                {proyectosEnviables.length === 0 ? (
-                  <li className="text-[13px] text-muted-foreground">No queda ningún proyecto por enviar.</li>
-                ) : null}
               </ul>
               <div className="flex justify-between border-t border-border pt-2 text-[13px] font-semibold">
-                <span>Total de horas del mes</span>
-                <Num>{horasMinutos(horasDelMes)}</Num>
+                <span>Horas seleccionadas</span>
+                <Num>{horasMinutos(registrosMarcados.reduce((s, r) => s + Number(r.horas ?? 0), 0))}</Num>
               </div>
-              <Aviso tono={registrosSinEvidencia.length > 0 ? "alerta" : "neutro"}>
-                <Num>{n(registrosSinEvidencia.length, 0)}</Num> de <Num>{n(registros.length, 0)}</Num> registros van
-                sin evidencia adjunta.
+              <Aviso tono={marcadosSinEvidencia > 0 ? "alerta" : "neutro"}>
+                <Num>{n(marcadosSinEvidencia, 0)}</Num> de <Num>{n(marcados.length, 0)}</Num> días van sin evidencia
+                adjunta.
               </Aviso>
               <Aviso tono="acento" titulo="Una vez enviado">
-                No podrás modificar esas horas hasta que tu jefatura responda.
+                No podrás modificar esos días hasta que tu jefatura responda.
               </Aviso>
               {errorBD ? <Aviso tono="alerta" titulo="La base respondió">{errorBD}</Aviso> : null}
             </div>
@@ -730,9 +797,9 @@ function RegistroHoras() {
               <Button variante="secundario" onClick={() => setDialogoEnvio(false)}>Cancelar</Button>
               <Button
                 variante="primario"
-                disabled={proyectosEnviables.length === 0}
-                cargando={enviarAprobacion.isPending}
-                onClick={() => enviarAprobacion.mutate()}
+                disabled={marcados.length === 0}
+                cargando={enviarRegistros.isPending}
+                onClick={() => enviarRegistros.mutate(marcados)}
               >
                 <Send className="h-3.5 w-3.5" />
                 Enviar a aprobación
