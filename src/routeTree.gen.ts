@@ -18,6 +18,7 @@ import { Route as AdminDefenseFileRouteImport } from './routes/admin.defense-fil
 import { Route as AdminIncidenciasRouteImport } from './routes/admin.incidencias'
 import { Route as AdminJornadaRouteImport } from './routes/admin.jornada'
 import { Route as AdminLiquidacionRouteImport } from './routes/admin.liquidacion'
+import { Route as AdminNotificacionesRouteImport } from './routes/admin.notificaciones'
 import { Route as AdminPeriodosRouteImport } from './routes/admin.periodos'
 import { Route as DashboardCapacidadRouteImport } from './routes/dashboard.capacidad'
 import { Route as DashboardCumplimientoRouteImport } from './routes/dashboard.cumplimiento'
@@ -72,6 +73,11 @@ const AdminJornadaRoute = AdminJornadaRouteImport.update({
 const AdminLiquidacionRoute = AdminLiquidacionRouteImport.update({
   id: '/admin/liquidacion',
   path: '/admin/liquidacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminNotificacionesRoute = AdminNotificacionesRouteImport.update({
+  id: '/admin/notificaciones',
+  path: '/admin/notificaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminPeriodosRoute = AdminPeriodosRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
+  '/admin/notificaciones': typeof AdminNotificacionesRoute
   '/admin/periodos': typeof AdminPeriodosRoute
   '/dashboard/capacidad': typeof DashboardCapacidadRoute
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
+  '/admin/notificaciones': typeof AdminNotificacionesRoute
   '/admin/periodos': typeof AdminPeriodosRoute
   '/dashboard/capacidad': typeof DashboardCapacidadRoute
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/admin/incidencias': typeof AdminIncidenciasRoute
   '/admin/jornada': typeof AdminJornadaRoute
   '/admin/liquidacion': typeof AdminLiquidacionRoute
+  '/admin/notificaciones': typeof AdminNotificacionesRoute
   '/admin/periodos': typeof AdminPeriodosRoute
   '/dashboard/capacidad': typeof DashboardCapacidadRoute
   '/dashboard/cumplimiento': typeof DashboardCumplimientoRoute
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/admin/incidencias'
     | '/admin/jornada'
     | '/admin/liquidacion'
+    | '/admin/notificaciones'
     | '/admin/periodos'
     | '/dashboard/capacidad'
     | '/dashboard/cumplimiento'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/admin/incidencias'
     | '/admin/jornada'
     | '/admin/liquidacion'
+    | '/admin/notificaciones'
     | '/admin/periodos'
     | '/dashboard/capacidad'
     | '/dashboard/cumplimiento'
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/admin/incidencias'
     | '/admin/jornada'
     | '/admin/liquidacion'
+    | '/admin/notificaciones'
     | '/admin/periodos'
     | '/dashboard/capacidad'
     | '/dashboard/cumplimiento'
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   AdminIncidenciasRoute: typeof AdminIncidenciasRoute
   AdminJornadaRoute: typeof AdminJornadaRoute
   AdminLiquidacionRoute: typeof AdminLiquidacionRoute
+  AdminNotificacionesRoute: typeof AdminNotificacionesRoute
   AdminPeriodosRoute: typeof AdminPeriodosRoute
   DashboardCapacidadRoute: typeof DashboardCapacidadRoute
   DashboardCumplimientoRoute: typeof DashboardCumplimientoRoute
@@ -337,6 +350,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/liquidacion'
       fullPath: '/admin/liquidacion'
       preLoaderRoute: typeof AdminLiquidacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/notificaciones': {
+      id: '/admin/notificaciones'
+      path: '/admin/notificaciones'
+      fullPath: '/admin/notificaciones'
+      preLoaderRoute: typeof AdminNotificacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/periodos': {
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIncidenciasRoute: AdminIncidenciasRoute,
   AdminJornadaRoute: AdminJornadaRoute,
   AdminLiquidacionRoute: AdminLiquidacionRoute,
+  AdminNotificacionesRoute: AdminNotificacionesRoute,
   AdminPeriodosRoute: AdminPeriodosRoute,
   DashboardCapacidadRoute: DashboardCapacidadRoute,
   DashboardCumplimientoRoute: DashboardCumplimientoRoute,
