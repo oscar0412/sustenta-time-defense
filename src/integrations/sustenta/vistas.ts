@@ -30,6 +30,11 @@ export interface RegistroDetalle {
   sustentos: number | null;
   costo_hora: number | null;
   costo: number | null;
+  estado_aprobacion: string | null;
+  enviado_en: string | null;
+  resuelto_en: string | null;
+  resuelto_por: string | null;
+  comentario_aprobacion: string | null;
 }
 
 export interface AsignacionDetalle {
@@ -150,29 +155,63 @@ export interface ChecklistItem {
   detalle: string | null;
 }
 
-/** Unidad de aprobación: colaborador × proyecto × periodo. */
-export interface AprobacionFila {
+/** Evidencia documental de cada registro. */
+export interface SustentoVista {
   id: string;
-  periodo_id: string;
-  anio: number;
-  mes: number;
-  periodo_estado: string | null;
-  colaborador_id: string;
-  colaborador: string | null;
-  documento: string | null;
-  jefe_id: string | null;
-  jefe: string | null;
-  proyecto_id: string;
-  proyecto_codigo: string | null;
-  proyecto_nombre: string | null;
-  empresa_id: string | null;
-  empresa: string | null;
+  registro_id: string;
+  nombre_archivo: string | null;
+  tipo_documento: string | null;
+  hash_sha256: string | null;
+  tamano_bytes: number | null;
+  storage_path: string | null;
+  creado_en: string | null;
+  colaborador_id: string | null;
+  proyecto_id: string | null;
+  periodo_id: string | null;
+  fecha: string | null;
+}
+
+export type Severidad = "informativa" | "importante" | "critica";
+
+export interface TipoAlerta {
+  codigo: string;
+  nombre: string | null;
+  descripcion: string | null;
+  severidad: string | null;
+  destinatario: string | null;
+  activo: boolean | null;
+  canal_app: boolean | null;
+  canal_correo: boolean | null;
+  dias_antes: number | null;
+  orden: number | null;
+}
+
+export interface AlertaFila {
+  tipo_codigo: string;
+  tipo_nombre: string | null;
+  destinatario_id: string | null;
+  destinatario: string | null;
+  periodo_id: string | null;
+  anio: number | null;
+  mes: number | null;
+  titulo: string | null;
+  detalle: string | null;
+  cantidad: number | null;
+  enlace: string | null;
+  severidad: string | null;
+  leida_en: string | null;
+  resuelta: boolean | null;
+  generada_en: string | null;
+}
+
+export interface NotificacionEnvio {
+  id: string;
+  tipo_codigo: string | null;
+  canal: string | null;
+  destino: string | null;
   estado: string | null;
-  horas_enviadas: number | null;
+  intentos: number | null;
+  creado_en: string | null;
   enviado_en: string | null;
-  resuelto_en: string | null;
-  comentario: string | null;
-  resuelto_por_nombre: string | null;
-  registros: number | null;
-  registros_sin_evidencia: number | null;
+  error: string | null;
 }
