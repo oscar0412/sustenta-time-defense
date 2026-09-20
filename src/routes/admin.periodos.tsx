@@ -91,6 +91,7 @@ function Periodos() {
         p_observacion: observacion,
       });
       if (err) throw err;
+      await sustenta.rpc("hr_evaluar_alertas", { p_periodo: periodoId });
     },
     onSuccess: () => {
       setError(null);

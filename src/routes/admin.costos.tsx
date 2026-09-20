@@ -165,6 +165,7 @@ function Costos() {
     mutationFn: async () => {
       const { error: err } = await sustenta.rpc("hr_calcular_costos", { p_periodo: periodoId });
       if (err) throw err;
+      await sustenta.rpc("hr_evaluar_alertas", { p_periodo: periodoId });
     },
     onSuccess: () => {
       setError(null);
@@ -253,12 +254,14 @@ function Costos() {
       }
       const { error: errRpc } = await sustenta.rpc("hr_calcular_costos", { p_periodo: periodoId });
       if (errRpc) throw errRpc;
+      await sustenta.rpc("hr_evaluar_alertas", { p_periodo: periodoId });
     },
     onSuccess: async () => {
       setError(null);
       setAplicado(true);
       toast.success(`${validas.length} costos cargados y recalculados`);
       await qc.invalidateQueries({ queryKey: ["costos-capacidad"] });
+      await qc.invalidateQueries({ queryKey: ["alertas"] });
     },
     onError: (e) => {
       const m = mensajeDeError(e);

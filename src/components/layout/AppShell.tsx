@@ -227,10 +227,7 @@ function Topbar({ onAbrirMenu }: { onAbrirMenu: () => void }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <button className="relative hidden rounded-[6px] p-2 text-muted-foreground hover:bg-surface-muted sm:block">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent" />
-        </button>
+        <Campana />
         <MenuUsuario />
         <div className="hidden items-center gap-3 border-l border-border pl-3 sm:flex">
           <div className="text-right leading-tight">
