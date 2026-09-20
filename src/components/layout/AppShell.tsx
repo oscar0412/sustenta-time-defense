@@ -15,10 +15,13 @@ import {
   X,
   User,
 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { gruposPorRol, ROLES } from "@/lib/nav";
 import { useSesion } from "@/context/session";
 import { nombreColaborador, nombrePeriodo } from "@/integrations/sustenta/types";
+import { sustenta, sustentaConfigurado } from "@/integrations/sustenta/client";
+import type { AlertaFila } from "@/integrations/sustenta/vistas";
 import { Badge, Num } from "@/components/ui-kit";
 
 function Sidebar({
@@ -196,6 +199,116 @@ function MenuUsuario() {
   );
 }
 
+function tonoSeveridad(sev?: string | null) {
+  const s = (sev ?? "").toLowerCase();
+  if (s === "critica") return { texto: "text-accent", fondo: "bg-accent-soft", etiqueta: "Crítica" };
+  if (s === "importante") return { texto: "text-warning", fondo: "bg-warning-soft", etiqueta: "Importante" };
+  return { texto: "text-muted-foreground", fondo: "bg-surface-muted", etiqueta: "Informativa" };
+}
+
+function Campana() {
+  const { colaborador } = useSesion();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [abierto, setAbierto] = useState(false);
+  const caja = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function fuera(e: MouseEvent) {
+      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false);
+    }
+    document.addEventListener("mousedown", fuera);
+    return () => document.removeEventListener("mousedown", fuera);
+  }, []);
+
+  const alertasQ = useQuery({
+    queryKey: ["alertas", colaborador?.id],
+    enabled: sustentaConfigurado && !!colaborador?.id,
+    queryFn: async () => {
+      const { data, error } = await sustenta
+        .from("hr_v_alerta")
+        .select("*")
+        .eq("destinatario_id", colaborador?.id ?? "")
+        .eq("resuelta", false);
+      if (error) throw error;
+      return (data ?? []) as AlertaFila[];
+    },
+  });
+
+  const marcarLeida = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sustenta.rpc("hr_marcar_alerta_leida", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["alertas"] }),
+  });
+
+  const alertas = alertasQ.data ?? [];
+  const noLeidas = alertas.filter((a) => !a.leida_en).length;
+  const orden = ["critica", "importante", "informativa"];
+  const grupos = orden
+    .map((sev) => ({ sev, filas: alertas.filter((a) => (a.severidad ?? "informativa").toLowerCase() === sev) }))
+    .filter((g) => g.filas.length > 0);
+
+  return (
+    <div className="relative" ref={caja}>
+      <button
+        onClick={() => setAbierto((v) => !v)}
+        aria-label="Alertas"
+        className="relative rounded-[6px] p-2 text-muted-foreground hover:bg-surface-muted"
+      >
+        <Bell className="h-4 w-4" />
+        {noLeidas > 0 ? (
+          <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-accent-foreground num">
+            {noLeidas}
+          </span>
+        ) : null}
+      </button>
+      {abierto ? (
+        <div className="absolute right-0 z-50 mt-2 max-h-[70vh] w-[320px] overflow-y-auto rounded-[6px] border border-border bg-surface shadow-lg">
+          <div className="border-b border-border px-3 py-2">
+            <p className="text-[13px] font-semibold">Alertas</p>
+            <p className="text-[11px] text-muted-foreground">
+              <Num>{noLeidas}</Num> sin leer de <Num>{alertas.length}</Num> vigentes
+            </p>
+          </div>
+          {grupos.length === 0 ? (
+            <p className="px-3 py-4 text-[12px] text-muted-foreground">No tienes alertas pendientes.</p>
+          ) : (
+            grupos.map((g) => {
+              const tono = tonoSeveridad(g.sev);
+              return (
+                <div key={g.sev}>
+                  <p className={cn("px-3 py-1 text-[10px] font-bold uppercase tracking-[0.06em]", tono.fondo, tono.texto)}>
+                    {tono.etiqueta}
+                  </p>
+                  {g.filas.map((a, i) => (
+                    <button
+                      key={`${a.tipo_codigo}-${i}`}
+                      onClick={() => {
+                        if (a.tipo_codigo) marcarLeida.mutate(a.tipo_codigo);
+                        setAbierto(false);
+                        if (a.enlace) void navigate({ to: a.enlace });
+                      }}
+                      className={cn(
+                        "block w-full border-b border-border px-3 py-2 text-left hover:bg-surface-muted",
+                        !a.leida_en && "bg-surface",
+                      )}
+                    >
+                      <p className={cn("text-[12px] font-semibold", tono.texto)}>{a.titulo ?? a.tipo_nombre}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{a.detalle ?? ""}</p>
+                    </button>
+                  ))}
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function Topbar({ onAbrirMenu }: { onAbrirMenu: () => void }) {
   const { colaborador, session, cerrarSesion, periodoActivo, rol } = useSesion();
   const alcance = ROLES.find((r) => r.valor === rol);
@@ -227,10 +340,7 @@ function Topbar({ onAbrirMenu }: { onAbrirMenu: () => void }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <button className="relative hidden rounded-[6px] p-2 text-muted-foreground hover:bg-surface-muted sm:block">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent" />
-        </button>
+        <Campana />
         <MenuUsuario />
         <div className="hidden items-center gap-3 border-l border-border pl-3 sm:flex">
           <div className="text-right leading-tight">
